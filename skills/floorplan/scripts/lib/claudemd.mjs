@@ -14,11 +14,11 @@ const START = '<!-- floorplan:start -->';
 const END = '<!-- floorplan:end -->';
 const NAME = 'CLAUDE.local.md';
 
-function block(rel) {
+function block(rel, from = 'the folder this file is in') {
   return `${START}
 ## Floorplan: map of this codebase
 
-\`${rel}/\` holds a map of this codebase: every module, file and endpoint with a plain-English name and a one-line description, and what connects to what. For questions like "where is X", "how does Y work" or "what uses Z", look it up before searching the code (run these from the folder this file is in):
+\`${rel}/\` holds a map of this codebase: every module, file and endpoint with a plain-English name and a one-line description, and what connects to what. For questions like "where is X", "how does Y work" or "what uses Z", look it up before searching the code (run these from ${from}):
 
 - \`node ${rel}/query.mjs find "<words>"\`: modules, files and endpoints that match
 - \`node ${rel}/query.mjs show <file path | module id | "GET /path">\`: what it is, what it uses, what uses it
@@ -37,22 +37,52 @@ const stripBlock = (text) => {
   return [text.slice(0, a).trimEnd(), text.slice(b + END.length).trimStart()].filter(Boolean).join('\n\n').replace(/\r\n/g, '\n');
 };
 
-/** Adds CLAUDE.local.md to the enclosing repo's .git/info/exclude unless git already ignores it. */
-function excludeLocally(root) {
+/** Adds a notes file (CLAUDE.local.md by default) to the enclosing repo's .git/info/exclude unless git already ignores it. */
+function excludeLocally(root, name = NAME, label = 'personal Claude Code notes') {
   if (git(root, ['rev-parse', '--is-inside-work-tree']) !== 'true') return 'not in a git repo';
-  if (git(root, ['ls-files', '--', NAME])) return `${NAME} is committed in this repo; the Floorplan section will show up in it`;
-  if (git(root, ['check-ignore', '-q', NAME]) !== null) return 'already ignored';
+  if (git(root, ['ls-files', '--', name])) return `${name} is committed in this repo; the Floorplan section will show up in it`;
+  if (git(root, ['check-ignore', '-q', name]) !== null) return 'already ignored';
   const prefix = git(root, ['rev-parse', '--show-prefix']) || '';
   const excl = git(root, ['rev-parse', '--git-path', 'info/exclude']);
   if (!excl) return 'could not find .git/info/exclude';
   const file = path.resolve(root, excl);
-  const line = '/' + prefix + NAME;
+  const line = '/' + prefix + name;
   const cur = read(file) || '';
   if (!cur.split(/\r?\n/).includes(line)) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
-    fs.writeFileSync(file, cur.replace(/\s*$/, cur.trim() ? '\n' : '') + `# personal Claude Code notes (added by Floorplan)\n${line}\n`);
+    fs.writeFileSync(file, cur.replace(/\s*$/, cur.trim() ? '\n' : '') + `# ${label} (added by Floorplan)\n${line}\n`);
   }
   return 'ignored locally via .git/info/exclude';
+}
+
+// Antigravity's equivalent of CLAUDE.local.md: a workspace rule. Antigravity loads every .md in .agents/rules/
+// into each session; one with `trigger: always_on` is always active. The whole file is Floorplan's, kept out of
+// git through .git/info/exclude like CLAUDE.local.md. Added only when the user asks (build.mjs --agy-rule);
+// one that already exists is kept current. Put <!-- floorplan:off --> in it to opt out.
+const AGY_RULE = '.agents/rules/floorplan.md';
+export function writeAgyRule(root, outDir, { add = false } = {}) {
+  const rel = path.relative(root, outDir).replace(/\\/g, '/');
+  if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) return 'skipped (map is outside the codebase)';
+  const file = path.join(root, ...AGY_RULE.split('/'));
+  const old = read(file);
+  if (old == null && !add) return 'not added (offer it to the user; add it with --agy-rule)';
+  if (old?.includes('<!-- floorplan:off -->')) return 'skipped (opted out)';
+  const eol = old?.includes('\r\n') ? '\r\n' : '\n';
+  const text = `---
+trigger: always_on
+description: "Floorplan, a map of this codebase: look things up in it before searching the code."
+---
+
+${block(rel, 'the project root')}
+`.replace(/\n/g, eol);
+  const notes = [];
+  if (text !== old) {
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, text);
+    notes.push(`${old == null ? 'created' : 'updated'} ${AGY_RULE}`);
+  } else notes.push(`${AGY_RULE} unchanged`);
+  notes.push(excludeLocally(root, AGY_RULE, 'personal Antigravity rule'));
+  return notes.join('; ');
 }
 
 /** Refreshes the block, or adds it when `add` (the user asked for it); moves it out of a committed CLAUDE.md written by older versions. */

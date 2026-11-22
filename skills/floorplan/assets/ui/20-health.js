@@ -1,6 +1,6 @@
 // Health check panel: plain-language warnings from graph.health (lib/health.mjs) — leaked keys,
 // endpoints anyone can call, unused and oversized files — each with "Show on map" and a ready
-// prompt to paste into Claude Code or Codex, and what each check had to look at. Talks to the viewer only
+// prompt to paste into Antigravity, Claude Code or Codex, and what each check had to look at. Talks to the viewer only
 // through window.Floorplan.
 (() => {
   const SC = window.Floorplan;

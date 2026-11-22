@@ -524,7 +524,7 @@ test('FLOORPLAN_AGENT=none works on its own, and unattended mode implies it unle
   assert.equal(detectAgent({}, { FLOORPLAN_UNATTENDED: '1' }), 'none');
   assert.equal(detectAgent({}, { FLOORPLAN_UNATTENDED: '1', CODEX_THREAD_ID: 'x' }), 'none');
   assert.equal(detectAgent({ agent: 'codex' }, { FLOORPLAN_UNATTENDED: '1' }), 'codex');
-  assert.equal(detectAgent({}, { FLOORPLAN_UNATTENDED: '0' }), 'claude', 'only a yes switches it on');
+  assert.equal(detectAgent({}, { FLOORPLAN_UNATTENDED: '0' }), 'antigravity', 'only a yes switches it on (this fork assumes Antigravity)');
   const p = shopApp();
   try {
     run('scan.mjs', p);

@@ -2,7 +2,8 @@
 // Show the map to the user after a build or refresh. Reuses this map's server if it's running (open tabs
 // have already reloaded themselves), restarts it if serve.mjs changed, otherwise starts it in the
 // background and opens a browser tab. Prints the URL and how to stop it.
-// usage: node open.mjs [root] [--no-open] [--port N] [--engine claude|codex] [--model M] [--claude PATH] [--codex PATH]
+// usage: node open.mjs [root] [--no-open] [--port N] [--engine antigravity|claude|codex] [--model M]
+//                      [--antigravity PATH] [--claude PATH] [--codex PATH] [--agy-mode MODE]
 //                      [--editor NAME|LINK]   (the editor "Open in editor" opens, e.g. cursor or "zed://file/{path}:{line}")
 import fs from 'node:fs';
 import path from 'node:path';
@@ -64,7 +65,7 @@ if (status && (status.hash !== hash || (editor?.template && status.editor !== ed
 }
 
 if (!status) {
-  const pass = ['port', 'engine', 'model', 'claude', 'codex', 'editor'].flatMap((k) => (args[k] ? ['--' + k, String(args[k])] : []));
+  const pass = ['port', 'engine', 'model', 'antigravity', 'claude', 'codex', 'agy-mode', 'editor'].flatMap((k) => (args[k] ? ['--' + k, String(args[k])] : []));
   if (!args.port && s?.port) pass.push('--port', String(s.port)); // keep the address people have open
   fs.mkdirSync(path.dirname(stateFile), { recursive: true });
   const log = fs.openSync(path.join(dir, '.cache', 'server.log'), 'w');
@@ -72,7 +73,7 @@ if (!status) {
   spawn(process.execPath, [serveFile, '--no-open', '--idle-exit', String(IDLE_MINUTES), ...pass], {
     cwd: root, detached: true, stdio: ['ignore', log, log], windowsHide: true,
   }).unref();
-  // finding the Claude Code or Codex CLI takes a few seconds before the server listens
+  // finding the Antigravity, Claude Code or Codex CLI takes a few seconds before the server listens
   for (let i = 0; i < 100; i++) {
     await sleep(200);
     const n = readState();
@@ -96,8 +97,13 @@ console.log(`FLOORPLAN  ${s.url}  (${shown})`);
 const CLI = {
   claude: { name: 'the Claude Code CLI', docs: 'https://docs.claude.com/en/docs/claude-code' },
   codex: { name: 'Codex', docs: 'https://developers.openai.com/codex' },
+  antigravity: { name: 'the Antigravity CLI (agy)', docs: 'https://antigravity.google/docs/cli/install' },
 };
 console.log(health?.cli
   ? `ASK  works: questions run through ${cliLabel(health.engine, health.version)}${health.version ? ' (' + health.version + ')' : ''}`
   : `ASK  needs ${(CLI[health?.want] || CLI.claude).name}, which was not found; the map itself works (${(CLI[health?.want] || CLI.claude).docs})`);
+// Antigravity runs map lookups (node floorplan/query.mjs) only with an allow rule; without one it reads files instead
+if (health?.cli && health.engine === 'antigravity' && health.queryAllowed === false) {
+  console.log('ASK  tip: answers are faster and cheaper when Antigravity may run the map\'s own lookups. Add "command(node floorplan/query.mjs)" to permissions.allow in ~/.gemini/antigravity-cli/settings.json (offer this to the user; don\'t change it unasked)');
+}
 console.log(`SERVER  runs in the background, updates open tabs when the map is rebuilt, and stops ${IDLE_MINUTES / 60} hours after the last tab closes. Stop it now: node ${rel}/serve.mjs --stop`);

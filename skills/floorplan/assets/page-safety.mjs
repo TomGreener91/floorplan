@@ -127,11 +127,15 @@ export const EDITOR_PRESETS = {
   cursor: 'cursor://file/{path}:{line}',
   windsurf: 'windsurf://file/{path}:{line}',
   zed: 'zed://file/{path}:{line}',
+  // Antigravity's editor, a VS Code fork: newer versions register antigravity-ide:, earlier ones antigravity:
+  antigravity: 'antigravity-ide://file/{path}:{line}',
+  'antigravity-ide': 'antigravity-ide://file/{path}:{line}',
+  'antigravity-legacy': 'antigravity://file/{path}:{line}',
   // JetBrains IDEs answer these where they register their link (IntelliJ IDEA and PhpStorm on macOS, or with Toolbox)
   idea: 'idea://open?file={path}&line={line}',
   phpstorm: 'phpstorm://open?file={path}&line={line}',
 };
-export const EDITOR_SCHEMES = ['vscode', 'vscode-insiders', 'vscodium', 'cursor', 'windsurf', 'zed', 'idea', 'phpstorm', 'pycharm', 'webstorm', 'goland', 'rubymine', 'clion', 'rider', 'txmt', 'mvim', 'subl'];
+export const EDITOR_SCHEMES = ['vscode', 'vscode-insiders', 'vscodium', 'cursor', 'windsurf', 'zed', 'idea', 'phpstorm', 'pycharm', 'webstorm', 'goland', 'rubymine', 'clion', 'rider', 'txmt', 'mvim', 'subl', 'antigravity', 'antigravity-ide'];
 export const EDITOR_DEFAULT = EDITOR_PRESETS.vscode;
 // characters that could end an attribute or a link: quotes, angle brackets, the backtick and the backslash
 const LINK_BREAKERS = ['"', "'", '<', '>', '`', String.fromCharCode(92)];

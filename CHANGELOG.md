@@ -1,5 +1,15 @@
 # Changelog
 
+## Antigravity fork (2026-11-22)
+
+Not an upstream release: this fork adds Google Antigravity as a third agent. See [docs/antigravity.md](docs/antigravity.md).
+
+- **Fix with Antigravity.** Maps built in Antigravity name it in the Health panel's fix prompts, a blueprint's Build buttons and the Ask bar. Builds that don't recognise Claude Code or Codex now assume Antigravity; Claude Code is recognised by `CLAUDECODE` / `CLAUDE_CODE_ENTRYPOINT`.
+- **Ask through the Antigravity CLI.** `serve.mjs` has an `antigravity` engine: `agy -p` with `--output-format stream-json` and `--json-schema`, in Antigravity's default mode, resuming the conversation for follow-ups. A step that edits a project file stops the run. `--antigravity <path>`, `--agy-mode <mode>`, and a health tip when `command(node floorplan/query.mjs)` isn't allowed. A map Antigravity built sticks to it rather than falling back to Claude.
+- **Plugin and rule.** `.antigravity-plugin/plugin.json` for `agy plugin install`, and an optional uncommitted workspace rule, `.agents/rules/floorplan.md` (`build.mjs --agy-rule`), Antigravity's counterpart to `CLAUDE.local.md`.
+- **Open in editor:** `antigravity` and `antigravity-legacy` editor presets.
+- Fixed: the waitlist card's "Use my Claude email" now shows only when Claude Code answers.
+
 ## 0.11.0 (2026-11-16)
 
 - **Serverless Framework endpoints are on the map:** a backend whose endpoints are declared in `serverless.yml` rather than in code showed none, so the website's requests to it weren't connected and Health skipped its sign-in check. Endpoints now come from each function's `http` and `httpApi` events (`path` and `method`, `any` and `*`, and the short `http: GET /orders` form) in `serverless.yml`, `serverless-*.yml` and `serverless_*.yml`, including function lists split across files included with `${file(./functions.yml)}`. Each endpoint sits in the file its `handler:` names (`src/orders.create` is `create` in `src/orders.ts`), followed through a file that re-exports it, or into another file's function when the handler only passes the request on to it (`(event) => withEvent(event, options, orders.create)`). Health counts an `authorizer`, `private: true` (an API key) or a sign-in check handed to the wrapper as protecting an endpoint, and still reads the handler for a check of its own. CloudFormation tags (`!Ref`, `!GetAtt`, `!Sub`), `${opt:…}` and `${self:…}` variables and anchors are read without trouble, and the scan summary lists schedules, queues, streams and other background functions for a worker node. Sample configs in test folders add no endpoints. Reported and fixed by @ShehanEk in #131 and #132.

@@ -9,10 +9,13 @@
 
 **See how your app actually fits together.**
 
-Claude or Codex reads your codebase and draws an interactive map of it. Every part, file and web request gets a plain-English name, and every connection between them is shown.
+Antigravity, Claude or Codex reads your codebase and draws an interactive map of it. Every part, file and web request gets a plain-English name, and every connection between them is shown.
+
+> **This is an Antigravity fork** of [haydenschmitty/floorplan](https://github.com/haydenschmitty/floorplan). It adds Google Antigravity as a third agent: "Fix with Antigravity" prompts, the map's Ask bar through the Antigravity CLI, an Antigravity plugin manifest and an optional workspace rule. Claude Code and Codex keep working as before. See [Floorplan in Antigravity](docs/antigravity.md).
 
 [![Claude Code plugin](https://img.shields.io/badge/Claude%20Code-plugin-D97757?style=flat-square)](https://code.claude.com/docs/en/overview)
 [![Codex plugin](https://img.shields.io/badge/Codex-plugin-111?style=flat-square)](docs/codex.md)
+[![Antigravity plugin](https://img.shields.io/badge/Antigravity-plugin-4285F4?style=flat-square)](docs/antigravity.md)
 [![Tests](https://img.shields.io/github/actions/workflow/status/haydenschmitty/floorplan/test.yml?branch=main&style=flat-square&label=tests)](https://github.com/haydenschmitty/floorplan/actions/workflows/test.yml)
 [![Version](https://img.shields.io/badge/version-0.11.0-111?style=flat-square)](CHANGELOG.md)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111?style=flat-square)](LICENSE)
@@ -163,7 +166,15 @@ Want to click around yourself? Open the [live demo](https://haydenschmitty.githu
 
 ## Install
 
-You need [Node.js 18+](https://nodejs.org) and either Claude Code or Codex. Floorplan runs on the plan you already have, with no API keys.
+You need [Node.js 18+](https://nodejs.org) and Antigravity, Claude Code or Codex. Floorplan runs on the plan you already have, with no API keys.
+
+### Antigravity
+
+```bash
+agy plugin install https://github.com/TomGreener91/floorplan
+```
+
+Then ask Antigravity to "draw a floorplan of this codebase", or type `/floorplan`. Everything works from the Agent Manager. The map's Ask bar also needs the [Antigravity CLI](https://antigravity.google/docs/cli/install) signed in once. More in [Floorplan in Antigravity](docs/antigravity.md).
 
 ### Claude Code
 
@@ -195,7 +206,7 @@ Start a new chat and ask for a floorplan, or type `$floorplan`. The map's Ask ba
 
 ## Quick start
 
-1. Open your project in Claude Code or Codex. For a frontend and backend in separate repos, open the folder that holds both.
+1. Open your project in Antigravity, Claude Code or Codex. For a frontend and backend in separate repos, open the folder that holds both.
 2. Ask:
    > Make me a floorplan of this app.
 
@@ -261,6 +272,7 @@ More in [Privacy and security](docs/privacy-and-security.md). Wondering whether 
 | | |
 |---|---|
 | [Getting started](docs/getting-started.md) | Install, first map, updating, planning from a PRD, removing |
+| [Floorplan in Antigravity](docs/antigravity.md) | This fork: installing and using it in Antigravity, and keeping the fork up to date |
 | [Floorplan in Codex](docs/codex.md) | Installing and using it in Codex |
 | [Using the map](docs/using-the-map.md) | Every button, view, shortcut and menu |
 | [How it works](docs/how-it-works.md) | The pipeline, connection matching, refreshes |

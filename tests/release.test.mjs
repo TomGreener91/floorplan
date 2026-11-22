@@ -54,3 +54,16 @@ test('the skill has a name and description, and every file it points to exists',
 test('CHECKSUMS.txt is for this version, so each release ships its fingerprints', () => {
   assert.match(read('CHECKSUMS.txt'), new RegExp(`^# Floorplan ${plugin.version.replaceAll('.', '\\.')}:`), 'run node tools/checksums.mjs when bumping the version');
 });
+
+test('the Antigravity plugin matches the Claude Code plugin, and uses only keys its schema knows', () => {
+  const agy = readJson(path.join(REPO, '.antigravity-plugin', 'plugin.json'));
+  assert.equal(agy.name, plugin.name);
+  assert.match(agy.name, /^[\w-]+$/, 'letters, digits, hyphens and underscores only');
+  assert.equal(agy.version, plugin.version, '.antigravity-plugin/plugin.json version');
+  assert.ok(fs.existsSync(path.join(REPO, agy.logo)), `logo: ${agy.logo}`);
+  assert.ok(agy.suggestedPrompts.length <= 3);
+  const known = ['$schema', 'name', 'displayName', 'display_name', 'description', 'version', 'disabled', 'logo', 'suggestedPrompts', 'suggested_prompts', 'skills', 'author', 'homepage', 'repository', 'license', 'keywords', 'extensions'];
+  for (const k of Object.keys(agy)) assert.ok(known.includes(k), `unknown key ${k}`);
+  // Antigravity finds the skill in skills/ at the plugin root
+  assert.ok(fs.existsSync(path.join(REPO, 'skills', plugin.name, 'SKILL.md')));
+});
