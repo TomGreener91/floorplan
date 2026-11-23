@@ -183,6 +183,17 @@ test('the map has the Dependencies view, and Ask and the notes mention the new l
     const html = fs.readFileSync(path.join(root, 'floorplan', 'index.html'), 'utf8');
     assert.match(html, /\/\* ui\/35-deps\.js \*\//);
     assert.match(html, /id: 'deps-btn', label: 'Dependencies'/);
+    // drawn by the map itself: its own cards, lines and column brackets, one column per step
+    assert.match(html, /function buildDepsView\(container\)/);
+    assert.match(html, /'elk\.partitioning\.activate': 'true'/);
+    assert.match(html, /if \(isDep\(container\)\) return buildDepsView\(container\);/);
+    // the search finds import loops, and Shift+Enter opens a file's or part's dependencies
+    assert.match(html, /id: 'dep:loop:' \+ i/);
+    assert.match(html, /pick\(sActive, ev\.shiftKey\)/);
+    assert.match(html, /<span class="kbd">⇧↵<\/span> dependencies/);
+    // the right-click menu and the D key
+    assert.match(html, /label: 'Show dependencies', icon: 'deps'/);
+    assert.match(html, /ev\.key === 'd' \|\| ev\.key === 'D'/);
     assert.match(html, /query\.mjs deps <file>/, 'the Ask instructions');
     run('build.mjs', root, '--agent', 'antigravity', '--agy-rule');
     assert.match(fs.readFileSync(path.join(root, '.agents', 'rules', 'floorplan.md'), 'utf8'), /query\.mjs deps <file>/);

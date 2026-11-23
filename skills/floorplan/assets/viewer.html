@@ -54,6 +54,7 @@
   --ease: cubic-bezier(.16, 1, .3, 1); --ease-io: cubic-bezier(.65, 0, .35, 1);
   --shadow-card: 0 1px 0 rgba(var(--ink), .035) inset, 0 12px 32px -20px rgba(0, 0, 0, .95);
   --shadow-float: 0 0 0 1px rgba(var(--ink), .05), 0 24px 64px -24px rgba(0, 0, 0, .9);
+  --k-loop: var(--sev-high); --n-deps: var(--sev-high);
   --k-import: #6e6e6e; --k-http: #7aa7ff; --k-call: #b49cff; --k-rpc: #8f9bff; --k-event: #f19ac7; --k-queue: #f0c36b; --k-data: #63d2b8; --k-config: #6b7280; --k-contains: #4a4a4a;
   --n-ui: #7cc4ff; --n-service: #b49cff; --n-worker: #f0c36b; --n-library: #6fd7a8; --n-feature: #8fb4ff; --n-data: #63d2b8; --n-config: #a3a3a3;
   --n-test: #f19ac7; --n-script: #f5a66b; --n-infra: #f28b8b; --n-external: #e3a6f0; --n-misc: #8b8b8b; --n-dir: #a3a3a3; --n-file: #a3a3a3;
@@ -82,6 +83,7 @@
   --shadow-float: 0 0 0 1px rgba(0, 0, 0, .1), 0 20px 48px -22px rgba(0, 0, 0, .4);
   --shadow-lift: 0 16px 32px -18px rgba(0, 0, 0, .4);
   --shadow-deep: 0 20px 48px -22px rgba(0, 0, 0, .4);
+  --k-loop: var(--sev-high); --n-deps: var(--sev-high);
   --k-import: #50555c; --k-http: #1f5fd6; --k-call: #6a45d6; --k-rpc: #4450cf; --k-event: #c43a85; --k-queue: #a8710c; --k-data: #0b7f6b; --k-config: #4f5661; --k-contains: #8d8d8d;
   --n-ui: #1f7ac4; --n-service: #7a5ad8; --n-worker: #a8710c; --n-library: #1a8a5b; --n-feature: #3b6fd1; --n-data: #0f8a76; --n-config: #666666;
   --n-test: #c43c86; --n-script: #c06a1d; --n-infra: #c94a4a; --n-external: #a24dbb; --n-misc: #666666; --n-dir: #666666; --n-file: #666666;
@@ -235,6 +237,22 @@ svg.dim .node:not(.hl) .card > * { opacity: .28; transition: opacity .3s var(--e
 .edge .hit { fill: none; stroke: transparent; stroke-width: 16; cursor: pointer; }
 .edge .port { fill: var(--bg); stroke: currentColor; stroke-width: 1.5; transition: opacity .25s var(--ease); }
 .edge.k-config .trace { stroke-dasharray: 5 5; }
+.edge.k-loop .trace { stroke-dasharray: 7 5; stroke-opacity: .85; }
+/* Dependencies view: a card's part, how many use it and what it uses, and the file it's centred on */
+.card.dep .foot .meta { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.card .dpn { flex: none; font-size: 11px; color: var(--text-3); white-space: nowrap; }
+.card .dpl { flex: none; display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; line-height: 1; color: var(--sev-high); background: color-mix(in srgb, var(--sev-high) 13%, transparent); padding: 4px 8px; border-radius: 999px; }
+.card.dep-loop { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--sev-high) 55%, transparent), var(--shadow-card); }
+.card.dep-focus { box-shadow: 0 0 0 2px var(--ring), var(--shadow-card); }
+#context .dpc { pointer-events: auto; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#context .dpc .seg { display: inline-flex; background: rgba(var(--ink), .06); border-radius: 12px; padding: 3px; }
+#context .dpc .seg span { color: var(--text-3); font-size: 12px; padding: 0 6px 0 8px; align-self: center; }
+#context .dpc button { border: 0; background: none; color: var(--text-2); height: 28px; min-width: 30px; padding: 0 9px; border-radius: 9px; cursor: pointer; font: inherit; font-size: 12.5px; }
+#context .dpc button.on { background: var(--raise-2); color: var(--text); }
+#results .r .rdep { flex: none; border: 0; background: rgba(var(--ink), .06); color: var(--text-2); border-radius: 9px; height: 26px; padding: 0 8px; display: none; align-items: center; gap: 5px; font: inherit; font-size: 12px; cursor: pointer; }
+#results .r.active .rdep, #results .r:hover .rdep { display: inline-flex; }
+#results .r .rdep .i { width: 13px; height: 13px; }
+#results .r .rdep:hover { background: rgba(var(--ink), .12); color: var(--text); }
 .edge.k-contains .trace { stroke-dasharray: 2 6; stroke-opacity: .9; }
 .edge:hover .trace, .edge.hl .trace { stroke-opacity: 1; }
 .edge:hover .flow, .edge.hl .flow { opacity: .95; animation: flow 1.1s linear infinite; }
@@ -610,7 +628,7 @@ html.wk svg.dim .node:not(.hl) foreignObject { opacity: .28; }
 <div id="palette"><div class="box glass">
   <div class="in"><svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg><input id="search" placeholder="Search by name, description, path or route…" autocomplete="off" spellcheck="false"></div>
   <div id="results"></div>
-  <div class="hint"><span><span class="kbd">↑↓</span> navigate</span><span><span class="kbd">↵</span> open</span><span><span class="kbd">esc</span> close</span></div>
+  <div class="hint"><span><span class="kbd">↑↓</span> navigate</span><span><span class="kbd">↵</span> open</span><span><span class="kbd">⇧↵</span> dependencies</span><span><span class="kbd">esc</span> close</span></div>
 </div></div>
 <!--__ELK_SCRIPT__-->
 <script>if (/AppleWebKit/.test(navigator.userAgent) && !/Chrome|Chromium|Edg|OPR/.test(navigator.userAgent)) document.documentElement.classList.add('wk');</script>
@@ -650,8 +668,8 @@ const svg = $('#svg'), vp = $('#viewport'), panel = $('#panel');
 const elk = new ELK();
 const KINDS = ['import', 'http', 'call', 'rpc', 'event', 'queue', 'data', 'config'];
 // connection names: plain by default, developer terms when "Show technical detail" is on
-const KIND_TECH = { contains: 'Contains', import: 'Imports', http: 'HTTP', call: 'Calls', rpc: 'RPC', event: 'Events', queue: 'Queues', data: 'Data', config: 'Config' };
-const KIND_PLAIN = { contains: 'Contains', import: 'Uses', http: 'Web requests', call: 'Calls', rpc: 'Calls', event: 'Events', queue: 'Background jobs', data: 'Reads & writes data', config: 'Settings' };
+const KIND_TECH = { loop: 'Circular imports', contains: 'Contains', import: 'Imports', http: 'HTTP', call: 'Calls', rpc: 'RPC', event: 'Events', queue: 'Queues', data: 'Data', config: 'Config' };
+const KIND_PLAIN = { loop: 'Import loop', contains: 'Contains', import: 'Uses', http: 'Web requests', call: 'Calls', rpc: 'Calls', event: 'Events', queue: 'Background jobs', data: 'Reads & writes data', config: 'Settings' };
 const KIND_LABEL = new Proxy({}, { get: (_, k) => (technical() ? KIND_TECH : KIND_PLAIN)[k] || k });
 let technicalFlag = false;
 const technical = () => technicalFlag;
@@ -774,6 +792,7 @@ const P = {
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   left: '<path d="m15 18-6-6 6-6"/>',
   right: '<path d="m9 18 6-6-6-6"/>',
+  deps: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.6 8 11 15.6M16.4 8 13 15.6"/>',
 };
 const icon = (k) => `<svg viewBox="0 0 24 24">${P[k] || P.file}</svg>`;
 const iconI = (k) => `<svg class="i" viewBox="0 0 24 24">${P[k] || P.file}</svg>`;
@@ -850,6 +869,7 @@ function humanize(s) { s = s.replace(/[_\-.]+/g, ' ').replace(/([a-z])([A-Z])/g,
 function info(item) {
   if (item === 'root') return { type: 'root', name: G.project.name, desc: G.project.summary || '', kind: 'root' };
   if (item === 'q:answer') return { type: 'answer', name: state.answer?.title || 'Answer', desc: state.answer?.question || '', kind: 'answer' };
+  if (item.startsWith('dep:')) return depInfo(item);
   const t = item.slice(0, 2);
   if (t === 'n:') { const n = nodes.get(item.slice(2)); return { type: 'node', name: n.label, desc: n.summary, kind: n.kind, n }; }
   if (t === 'd:') { const d = dirs.get(item); return { type: 'dir', name: humanize(d.path.split('/').pop()), desc: `${plural(d.files.length, 'file')} in ${d.path}/`, kind: 'dir', d, path: d.path + '/' }; }
@@ -944,8 +964,155 @@ const answerNote = (item) => {
   return i < 0 || !state.answer.items[i].note ? null : { n: i + 1, text: state.answer.items[i].note };
 };
 
+// ======================= dependencies =======================
+// One file, or a part, and what depends on what around it, drawn like the rest of the map: what uses it in the
+// columns on the left, what it uses on the right, one column per step out, with loops of files that import each
+// other in red. Views: dep:f:<path> (a file), dep:n:<part> (the files in a part that connect outside it) and
+// dep:loop:<i> (one import loop, in order). The file → file links come from graph-query.js's fileLinks().
+const DEP = {
+  data: null, linkObj: null, partFiles: new Map(),
+  depth: clamp(+store.get('dep-depth', 2) || 2, 1, 4),
+  dir: ['both', 'in', 'out'].includes(store.get('dep-dir', 'both')) ? store.get('dep-dir', 'both') : 'both',
+};
+const DEP_MAX = 160; // cards on one board; the nearest steps win
+// its own query instance: the search index needs this before the page's Q exists
+const depLinks = () => DEP.data || (DEP.data = createGraphQuery(G).fileLinks());
+const isDep = (c) => typeof c === 'string' && c.startsWith('dep:');
+const depFocus = (c) => c.slice(4);
+function depFilesOf(nid) {
+  if (!DEP.partFiles.has(nid)) DEP.partFiles.set(nid, G.files.filter((f) => chain('f:' + f.p).includes('n:' + nid)).map((f) => f.p));
+  return DEP.partFiles.get(nid);
+}
+function depValid(c) {
+  if (!isDep(c)) return false;
+  const f = depFocus(c);
+  if (f.startsWith('loop:')) return !!depLinks().loops[+f.slice(5)];
+  return depAble(f);
+}
+/** Whether a file or part has anything to show in the Dependencies view. */
+function depAble(id) {
+  if (typeof id !== 'string') return false;
+  if (id.startsWith('m:')) id = 'f:' + id.slice(2);
+  const { out, inn } = depLinks();
+  if (id.startsWith('f:')) { const p = id.slice(2); return files.has(p) && (out.has(p) || inn.has(p)); }
+  if (id.startsWith('n:')) { const n = nodes.get(id.slice(2)); return !!n && n.kind !== 'external' && depFilesOf(n.id).some((p) => out.has(p) || inn.has(p)); }
+  return false;
+}
+function openDeps(id) {
+  if (id.startsWith('m:')) id = 'f:' + id.slice(2);
+  if (!depAble(id)) { toast('Nothing on the map imports this or is imported by it.'); return; }
+  closeSheet();
+  go('dep:' + id);
+}
+function depInfo(item) {
+  const f = depFocus(item);
+  if (f.startsWith('loop:')) {
+    const lp = depLinks().loops[+f.slice(5)];
+    return { type: 'deps', name: lp ? lp.path.map((p) => files.get(p)?.name || p).join(' → ') : 'Import loop', desc: lp ? `${plural(lp.files.length, 'file')} import each other in a loop` : '', kind: 'deps' };
+  }
+  const fi = f.startsWith('f:') && files.has(f.slice(2)) || f.startsWith('n:') && nodes.has(f.slice(2)) ? info(f) : { name: f, desc: '' };
+  return { type: 'deps', name: fi.name, desc: fi.desc || '', kind: 'deps', focus: f };
+}
+function depLinkObj(a, b) {
+  if (!DEP.linkObj) {
+    DEP.linkObj = new Map();
+    for (const l of G.links) if (l.a.startsWith('f:') && l.b.startsWith('f:') && (!l.k || l.k === 'import' || l.k === 'call')) { const k = l.a + '>' + l.b; if (!DEP.linkObj.has(k)) DEP.linkObj.set(k, l); }
+  }
+  return DEP.linkObj.get('f:' + a + '>f:' + b) || { a: 'f:' + a, b: 'f:' + b, k: 'import', w: 1 };
+}
+function buildDepsView(container) {
+  const { out, inn, loops, loopOf } = depLinks();
+  const focus = depFocus(container);
+  const col = new Map(); // file → column: negative uses it, positive it uses
+  const labels = new Map();
+  const step = (k) => (Math.abs(k) === 1 ? (k < 0 ? 'Used by' : 'Uses') : `${k < 0 ? 'Used by' : 'Uses'}, ${Math.abs(k)} steps away`);
+  if (focus.startsWith('loop:')) {
+    const lp = loops[+focus.slice(5)];
+    lp.path.forEach((p, i) => { col.set(p, i); labels.set(i, i === 0 ? 'Starts here' : i === lp.path.length - 1 ? 'Imports the first again' : 'Imports the next'); });
+    const extra = lp.files.filter((p) => !lp.path.includes(p));
+    if (extra.length) { extra.forEach((p) => col.set(p, lp.path.length)); labels.set(lp.path.length, 'Also in this loop'); }
+  } else {
+    const center = focus.startsWith('f:') ? [focus.slice(2)] : depFilesOf(focus.slice(2));
+    const inside = new Set(center);
+    for (const p of center) col.set(p, 0);
+    labels.set(0, focus.startsWith('f:') ? 'This file' : `Inside ${info(focus).name}`);
+    const walk = (adj, sign) => {
+      let frontier = [...center];
+      for (let k = 1; k <= DEP.depth && frontier.length; k++) {
+        const next = [];
+        for (const x of frontier) for (const y of adj.get(x) || []) if (!col.has(y)) { col.set(y, sign * k); next.push(y); }
+        frontier = next;
+        if (next.length) labels.set(sign * k, step(sign * k));
+      }
+    };
+    // a file on both sides is in a loop with this one: it's shown once, on the "uses" side
+    if (DEP.dir !== 'in') walk(out, 1);
+    if (DEP.dir !== 'out') walk(inn, -1);
+    // a part shows only its files that connect outside it
+    if (focus.startsWith('n:')) for (const p of center) if (![...(out.get(p) || []), ...(inn.get(p) || [])].some((q) => col.has(q) && !inside.has(q))) col.delete(p);
+  }
+  // the nearest steps first; within a column, grouped by part, then by name
+  const partOf = (p) => files.get(p)?.n || '';
+  const order = [...col.keys()].sort((a, b) => Math.abs(col.get(a)) - Math.abs(col.get(b)) || col.get(a) - col.get(b) || partOf(a).localeCompare(partOf(b)) || (files.get(a)?.name || a).localeCompare(files.get(b)?.name || b));
+  const kept = order.slice(0, DEP_MAX);
+  const keep = new Set(kept);
+  const min = Math.min(...kept.map((p) => col.get(p)));
+  const partition = new Map(kept.map((p) => ['f:' + p, col.get(p) - min]));
+  const edges = [];
+  for (const a of kept) for (const b of out.get(a) || []) {
+    if (!keep.has(b)) continue;
+    const loop = loopOf.has(a) && loopOf.get(a) === loopOf.get(b);
+    // only lines that move one column to the right, plus loops: everything else would be noise
+    if (!loop && col.get(b) !== col.get(a) + 1) continue;
+    edges.push({ id: 'e' + edges.length, a: 'f:' + a, b: 'f:' + b, k: loop ? 'loop' : 'import', w: 1, links: [depLinkObj(a, b)] });
+  }
+  const visible = kept.slice().sort((a, b) => col.get(a) - col.get(b) || partOf(a).localeCompare(partOf(b)) || (files.get(a)?.name || a).localeCompare(files.get(b)?.name || b)).map((p) => 'f:' + p);
+  const columns = [...new Set(kept.map((p) => col.get(p)))].sort((a, b) => a - b).map((c) => ({ part: c - min, label: labels.get(c) || step(c) }));
+  return { container, visible, connectors: [], edges, hidden: col.size - kept.length, partition, columns };
+}
+function depFoot(item) {
+  const p = item.slice(2), { out, inn, loopOf } = depLinks();
+  const part = nodes.get(files.get(p)?.n)?.label || 'Other';
+  const loop = loopOf.has(p) ? '<span class="dpl">Import loop</span>' : `<span class="dpn">used by ${inn.get(p)?.size || 0} · uses ${out.get(p)?.size || 0}</span>`;
+  return `<div class="foot"><span class="meta">${h(part)}</span>${loop}</div>`;
+}
+function depCard(item) {
+  const p = item.slice(2);
+  const kind = nodes.get(files.get(p)?.n)?.kind || 'file';
+  const focus = depFocus(state.container);
+  return { cls: ' dep' + (depLinks().loopOf.has(p) ? ' dep-loop' : '') + (focus === item ? ' dep-focus' : ''), color: `var(--n-${kind})` };
+}
+function depContext() {
+  const c = state.container, f = depFocus(c), i = info(c);
+  const loop = f.startsWith('loop:');
+  const { out, inn } = depLinks();
+  const sub = loop ? 'Each file imports the next, and the last one imports the first again, so none of them can be changed, tested or reused on its own.'
+    : f.startsWith('f:') ? `Used by ${plural(inn.get(f.slice(2))?.size || 0, 'file')} and uses ${plural(out.get(f.slice(2))?.size || 0, 'file')} directly. What uses it is on the left, what it uses on the right.`
+    : `The files in ${i.name} that connect to the rest of the app: what uses them on the left, what they use on the right.`;
+  const hidden = state.view?.hidden ? `<p class="cx" style="color:var(--text-3);font-size:12.5px;margin-top:8px">${plural(state.view.hidden, 'more file')} not shown. Fewer steps, or one side, shows the rest.</p>` : '';
+  const seg = (name, vals, cur, label) => `<div class="seg" data-dpc="${name}">${label ? `<span>${label}</span>` : ''}${vals.map(([v, t]) => `<button data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${t}</button>`).join('')}</div>`;
+  const ctl = loop ? '' : `<div class="dpc">${seg('dir', [['both', 'Both'], ['in', 'Used by'], ['out', 'Uses']], DEP.dir)}${seg('depth', [[1, '1'], [2, '2'], [3, '3'], [4, '4']], DEP.depth, 'Steps')}</div>`;
+  $('#context').innerHTML = `<div class="k"><span class="ico" style="--c:var(--n-deps)">${icon('deps')}</span>${loop ? 'Import loop' : 'Dependencies'}</div><h1>${h(i.name)}</h1><p class="cd" id="ctx-desc">${h(sub)}</p>${hidden}${ctl}`;
+  $('#context').querySelectorAll('[data-dpc] button').forEach((b) => b.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    if (b.parentElement.dataset.dpc === 'dir') { DEP.dir = b.dataset.v; store.set('dep-dir', DEP.dir); }
+    else { DEP.depth = clamp(+b.dataset.v, 1, 4); store.set('dep-depth', DEP.depth); }
+    render({});
+  }));
+}
+function depsPanel() {
+  const f = depFocus(state.container);
+  if (!f.startsWith('loop:')) return itemPanel(f);
+  const lp = depLinks().loops[+f.slice(5)];
+  const rows = [...lp.path, ...lp.files.filter((p) => !lp.path.includes(p))].map((p) => rowFor('f:' + p, lp.path.includes(p) ? `step ${lp.path.indexOf(p) + 1}` : ''));
+  return `<div class="sec"><div class="ph"><span class="ico" style="--c:var(--n-deps)">${icon('deps')}</span><span class="kindlabel">Import loop</span></div><h2 class="pt">${h(info(state.container).name)}</h2>
+    <p class="pd">${h(plural(lp.files.length, 'file'))} import each other in a circle. Break the loop by moving what they share into a file both can import, or by passing it in (props, emits, provide/inject for Vue components). Health has a ready-made prompt for every loop.</p>
+    <div class="actions"><button class="btn soft" data-goroot>Back to map</button></div></div>${listSec('In this loop', rows)}`;
+}
+
 function buildView(container) {
   if (container === 'q:answer') return buildAnswerView();
+  if (isDep(container)) return buildDepsView(container);
   const isFile = container.startsWith('f:');
   const visible = visibleKids(container).slice();
   if (isFile) visible.unshift('m:' + container.slice(2));
@@ -1007,6 +1174,7 @@ const TITLE2_H = 10; // a title that wraps onto a second line
 const GUTTER = 28; // room around each card for its shadow, selection ring and hover lift (matches --gutter)
 /** Footer pieces: the card's size (modules / files / endpoints) and its recent-work pill. Empty when neither applies. */
 function cardFoot(item) {
+  if (isDep(state.container) && item.startsWith('f:')) return depFoot(item);
   const i = info(item);
   let size = '';
   if (i.type === 'node' && i.n.kind !== 'external') { const sub = (kids.get(item) || []).filter((k) => k.startsWith('n:')).length; size = sub ? plural(sub, 'module') : plural(statsOf(item).files, 'file'); }
@@ -1053,9 +1221,11 @@ function cardHTML(item) {
   }
   const note = answerNote(item);
   const noteHTML = note ? `<div class="anote"><b>${note.n}</b><span>${h(note.text)}</span></div>` : '';
-  if (recentOf(item)) cls += ' recent';
+  let color = colorOf(i);
+  if (isDep(state.container) && item.startsWith('f:')) { const d = depCard(item); cls += d.cls; color = d.color; }
+  else if (recentOf(item)) cls += ' recent';
   else if (recentIn.get(item.startsWith('m:') ? 'f:' + item.slice(2) : item)) cls += ' recent-in';
-  return `<div class="card ${cls}" style="--c:${colorOf(i)}"><div class="head">${head}</div>${title}${desc}${noteHTML}${cardFoot(item)}</div>`;
+  return `<div class="card ${cls}" style="--c:${color}"><div class="head">${head}</div>${title}${desc}${noteHTML}${cardFoot(item)}</div>`;
 }
 function connectorHTML(c) {
   const i = info(c.entity);
@@ -1072,7 +1242,7 @@ function cardTip(id) {
   const kind = i.type === 'node' ? i.kind : i.type === 'route' ? 'endpoint' : i.type === 'symbol' ? i.symKind : i.type === 'module' ? 'file' : i.type;
   const where = i.type === 'node' ? (i.n.paths || []).join('\n') : i.type === 'route' ? `${i.f.p}${i.r.h ? ` · ${i.r.h}()` : ''}` : i.path || '';
   const size = !st?.files ? '' : PLAN ? (i.type === 'file' || i.type === 'module' ? 'planned' : plural(st.files, 'planned file')) : i.type === 'file' || i.type === 'module' ? `${fmt(st.loc)} lines` : `${plural(st.files, 'file')} · ${fmt(st.loc)} lines`;
-  const hints = [drillable(id) && state.container !== id ? '<span><span class="kbd">2×click</span> open</span>' : '', '<span><span class="kbd">right-click</span> more</span>'].join('');
+  const hints = [isDep(state.container) && id.startsWith('f:') ? '<span><span class="kbd">2×click</span> centre on this</span>' : drillable(id) && state.container !== id ? '<span><span class="kbd">2×click</span> open</span>' : '', '<span><span class="kbd">right-click</span> more</span>'].join('');
   return `<div class="tt">${h(i.name)}</div><div class="td" style="text-transform:capitalize">${h(kind)}${size ? ` · ${size}` : ''}</div>${where ? `<div class="tp">${h(where)}</div>` : ''}${recentTip(id)}<div class="th">${hints}</div>`;
 }
 /** Hover lines for recent work: what changed on this card and how it serves the request, or what changed inside it. */
@@ -1101,7 +1271,9 @@ async function layout(view) {
   for (const item of view.visible) {
     const [w, hh] = SIZES[info(item).type] || SIZES.file;
     const ext = item.startsWith('n:') && nodes.get(item.slice(2)).kind === 'external';
-    children.push({ id: item, width: w, height: Math.max(hh + cardExtraH(item) + (answerNote(item) ? NOTE_H : 0), (deg.get(item) || 0) * 7 + 28), ...(ext ? { layoutOptions: { 'elk.layered.layering.layerConstraint': 'LAST' } } : {}) });
+    const part = view.partition?.get(item);
+    children.push({ id: item, width: w, height: Math.max(hh + cardExtraH(item) + (answerNote(item) ? NOTE_H : 0), (deg.get(item) || 0) * 7 + 28),
+      ...(part !== undefined ? { layoutOptions: { 'elk.partitioning.partition': String(part) } } : ext ? { layoutOptions: { 'elk.layered.layering.layerConstraint': 'LAST' } } : {}) });
   }
   for (const c of view.connectors) {
     children.push({ id: c.id, width: clamp(textW(info(c.entity).name, 13) + 84, 150, 320), height: Math.max(42, (deg.get(c.id) || 0) * 7 + 14),
@@ -1115,8 +1287,10 @@ async function layout(view) {
       'elk.layered.spacing.nodeNodeBetweenLayers': '130', 'elk.spacing.nodeNode': '32',
       'elk.layered.spacing.edgeEdgeBetweenLayers': '8', 'elk.spacing.edgeEdge': '8', 'elk.layered.spacing.edgeNodeBetweenLayers': '24',
       'elk.layered.nodePlacement.strategy': 'NETWORK_SIMPLEX', 'elk.layered.considerModelOrder.strategy': 'NODES_AND_EDGES',
-      'elk.layered.thoroughness': '12', 'elk.separateConnectedComponents': 'true', 'elk.spacing.componentComponent': '80',
+      'elk.layered.thoroughness': '12', 'elk.separateConnectedComponents': view.partition ? 'false' : 'true', 'elk.spacing.componentComponent': '80',
       'elk.padding': '[top=40,left=40,bottom=40,right=40]',
+      // the Dependencies view puts each step out in its own column
+      ...(view.partition ? { 'elk.partitioning.activate': 'true' } : {}),
     },
   });
 }
@@ -1155,6 +1329,7 @@ async function render(opts = {}) {
   $('#empty').hidden = view.visible.length > 0;
   $('#empty').textContent = view.visible.length ? '' : 'Nothing inside.';
   if (opts.keepTransform) applyTransform(); else fit(false);
+  if (!opts.keepTransform && isDep(state.container) && state.t.k < 0.45) { const f = depFocus(state.container); if (f.startsWith('f:')) centerOn(f); }
   applySelection();
   if (opts.after) opts.after();
 }
@@ -1210,13 +1385,19 @@ function draw(view, res) {
 /** Brackets over the three columns of a view that has outside connections: what uses this part (left),
  *  what's inside it (middle), and what it uses (right). Drawn in map space so they pan and zoom with it. */
 function drawColumns(g, view, res) {
-  if (!view.connectors?.length || state.container === 'root' || state.container === 'q:answer') return;
   const span = (cs) => cs.length ? [Math.min(...cs.map((c) => c.x)), Math.max(...cs.map((c) => c.x + c.width))] : null;
-  const ins = res.children.filter((c) => c.id.startsWith('x:in:'));
-  const outs = res.children.filter((c) => c.id.startsWith('x:out:'));
-  const mid = res.children.filter((c) => !c.id.startsWith('x:'));
+  let cols;
+  if (view.columns) {
+    if (!res.children.length) return;
+    cols = view.columns.map((c) => [span(res.children.filter((x) => view.partition.get(x.id) === c.part)), c.label]);
+  } else {
+    if (!view.connectors?.length || state.container === 'root' || state.container === 'q:answer') return;
+    const ins = res.children.filter((c) => c.id.startsWith('x:in:'));
+    const outs = res.children.filter((c) => c.id.startsWith('x:out:'));
+    const mid = res.children.filter((c) => !c.id.startsWith('x:'));
+    cols = [[span(ins), 'Used by'], [span(mid), `Inside ${info(state.container).name}`], [span(outs), 'Uses']];
+  }
   const y = Math.min(...res.children.map((c) => c.y)) - 26;
-  const cols = [[span(ins), 'Used by'], [span(mid), `Inside ${info(state.container).name}`], [span(outs), 'Uses']];
   for (const [s, label] of cols) {
     if (!s) continue;
     const [x0, x1] = s, cx = (x0 + x1) / 2;
@@ -1290,7 +1471,8 @@ function itemMenu(id) {
     { title: i.name },
     id.startsWith('x:') ? { label: `Go to ${i.name}`, icon: 'right', hint: '2×click', run: () => reveal(real) }
       : drillable(real) && state.container !== real ? { label: 'Open', icon: 'drill', hint: '2×click', run: () => open(real) } : null,
-    state.container === 'q:answer' && !id.startsWith('x:') ? { label: 'Show on the map', icon: 'external', run: () => reveal(real) } : null,
+    (state.container === 'q:answer' || isDep(state.container)) && !id.startsWith('x:') ? { label: 'Show on the map', icon: 'external', run: () => reveal(real) } : null,
+    depAble(real) && state.container !== 'dep:' + real ? { label: 'Show dependencies', icon: 'deps', hint: isDep(state.container) ? '2×click' : 'D', run: () => openDeps(real) } : null,
     EXPORTED ? (HOST_ASK ? { label: 'Ask about this', icon: 'spark', run: () => askHost([real]) } : null) : { label: 'Ask about this', icon: 'spark', run: () => addAskContext(real) },
     { label: 'Show details', icon: 'panel', run: () => { setPanel(true); if (id.startsWith('x:')) reveal(real); else select(id); } },
     '-',
@@ -1313,11 +1495,11 @@ function edgeMenu(e) {
 function canvasMenu() {
   return [
     { label: 'Fit to screen', icon: 'fit', hint: 'F', run: () => fit(true) },
-    state.container !== 'root' ? { label: 'Up one level', icon: 'left', hint: '⌫', run: up } : null,
+    state.container !== 'root' ? { label: isDep(state.container) ? 'Back to the map' : 'Up one level', icon: 'left', hint: '⌫', run: up } : null,
     state.container !== 'root' ? { label: 'Back to overview', icon: 'home', run: () => go('root') } : null,
     '-',
     { label: 'Search', icon: 'search', hint: '/', run: openPalette },
-    EXPORTED ? (HOST_ASK ? { label: 'Ask about this view', icon: 'spark', run: () => askHost(state.container !== 'root' && state.container !== 'q:answer' ? [state.container] : []) } : null) : { label: 'Ask about this view', icon: 'spark', run: () => { if (state.container !== 'root' && state.container !== 'q:answer') addAskContext(state.container); askInput.focus(); } },
+    EXPORTED ? (HOST_ASK ? { label: 'Ask about this view', icon: 'spark', run: () => askHost(state.container !== 'root' && state.container !== 'q:answer' ? [isDep(state.container) ? depFocus(state.container) : state.container].filter((x) => Q.exists(x)) : []) } : null) : { label: 'Ask about this view', icon: 'spark', run: () => { if (state.container !== 'root' && state.container !== 'q:answer') addAskContext(state.container); askInput.focus(); } },
   ];
 }
 // An exported copy shown inside another page has no Ask bar of its own, but the page around it may have one. That
@@ -1447,7 +1629,7 @@ function setHash(container, sel) {
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   let v = p.get('v') || 'root', s = p.get('s');
-  if (v !== 'root' && !parentOf.has(v)) v = 'root';
+  if (v !== 'root' && !parentOf.has(v) && !depValid(v)) v = 'root';
   if (s && !parentOf.has(s) && !s.startsWith('x:') && !s.startsWith('m:')) s = null;
   return { v, s };
 }
@@ -1473,13 +1655,19 @@ async function go(container, { select: sel = null, push = true, zoomFrom = null,
 }
 function open(item) {
   if (item.startsWith('x:')) { reveal(connEntity(item)); return; }
+  // in the Dependencies view, double-click centres the view on a file
+  if (isDep(state.container) && (item.startsWith('f:') || item.startsWith('m:'))) { openDeps(item.startsWith('m:') ? 'f:' + item.slice(2) : item); return; }
   if (item.startsWith('m:')) return;
   if (state.container === 'q:answer' && !drillable(item)) { reveal(item); return; }
   if (!drillable(item)) { select(item); return; }
   closeSheet();
   go(item, { zoomFrom: item });
 }
-function up() { if (state.container === 'root') return; closeSheet(); const from = state.container; go(parentOf.get(from) || 'root', { select: from }); }
+function up() { if (state.container === 'root') return; closeSheet(); const from = state.container;
+  // from the Dependencies view, back to where its file or part sits on the map
+  if (isDep(from)) { const f = depFocus(from); if (f.startsWith('loop:')) go('root'); else reveal(f); return; }
+  go(parentOf.get(from) || 'root', { select: from });
+}
 function reveal(item) {
   if (item === 'root') return go('root');
   const container = parentOf.get(item) || 'root';
@@ -1530,6 +1718,7 @@ function applySelection() {
 
 // ======================= chrome: context, crumbs, legend =======================
 function renderContext() {
+  if (isDep(state.container)) { depContext(); return; }
   if (state.container === 'q:answer') {
     $('#context').innerHTML = `<div class="k"><span class="ico" style="--c:var(--on)">${icon(state.answer.icon || 'spark')}</span>${h(state.answer.kind || 'Answer')} · ${plural(state.answer.items.length, 'card')}</div><h1>${h(state.answer.title)}</h1><p>${h(state.answer.question)}</p>`;
     return;
@@ -1556,13 +1745,15 @@ function foldContext() {
 }
 function renderCrumbs() {
   const c = $('#crumbs'); c.innerHTML = '';
-  const path = chain(state.container).slice().reverse();
+  const focus = isDep(state.container) ? depFocus(state.container) : null;
+  // the Dependencies view hangs off its file or part: Overview / … / AppIcon / Dependencies
+  const path = focus ? [...(focus.startsWith('loop:') ? ['root'] : chain(focus).slice().reverse()), state.container] : chain(state.container).slice().reverse();
   path.forEach((item, idx) => {
     if (idx) { const s = document.createElement('span'); s.className = 'sep'; s.textContent = '/'; c.appendChild(s); }
     const b = document.createElement('button');
-    b.textContent = revealHidden(item === 'root' ? 'Overview' : item === 'q:answer' ? `${state.answer.kind || 'Answer'}: ${state.answer.title}` : info(item).name);
+    b.textContent = revealHidden(item === 'root' ? 'Overview' : item === 'q:answer' ? `${state.answer.kind || 'Answer'}: ${state.answer.title}` : isDep(item) ? (focus.startsWith('loop:') ? 'Import loop' : 'Dependencies') : info(item).name);
     if (item === state.container) b.className = 'cur';
-    b.onclick = () => go(item, { select: path[idx + 1] || null });
+    b.onclick = () => (item === focus ? reveal(item) : go(item, { select: path[idx + 1] && !isDep(path[idx + 1]) ? path[idx + 1] : null }));
     c.appendChild(b);
   });
   $('#btn-up').hidden = state.container === 'root';
@@ -1641,10 +1832,11 @@ function renderPanel() {
   else if (sel && sel.startsWith('x:')) html = itemPanel(connEntity(sel), true);
   else if (sel && sel.startsWith('m:')) html = itemPanel('f:' + sel.slice(2));
   else if (sel) html = itemPanel(sel);
-  else html = state.container === 'root' ? overviewPanel() : state.container === 'q:answer' ? answerPanel() : itemPanel(state.container);
+  else html = state.container === 'root' ? overviewPanel() : state.container === 'q:answer' ? answerPanel() : isDep(state.container) ? depsPanel() : itemPanel(state.container);
   // extensions add sections: 'overview' on the codebase panel, 'item' on a selected/opened item
-  const where = sel && typeof sel === 'object' ? null : sel ? 'item' : state.container === 'root' ? 'overview' : state.container === 'q:answer' ? null : 'item';
-  const target = sel && typeof sel === 'string' ? (sel.startsWith('x:') ? connEntity(sel) : sel.startsWith('m:') ? 'f:' + sel.slice(2) : sel) : state.container;
+  const loopView = isDep(state.container) && depFocus(state.container).startsWith('loop:');
+  const where = sel && typeof sel === 'object' ? null : sel ? 'item' : state.container === 'root' ? 'overview' : state.container === 'q:answer' || loopView ? null : 'item';
+  const target = sel && typeof sel === 'string' ? (sel.startsWith('x:') ? connEntity(sel) : sel.startsWith('m:') ? 'f:' + sel.slice(2) : sel) : isDep(state.container) ? depFocus(state.container) : state.container;
   const extOut = [];
   if (custom.panel) { html = custom.panel.html; extOut.push(...(custom.panel.bind ? [{ bind: custom.panel.bind, whole: true }] : [])); }
   else if (where) for (const fn of ext.sections[where]) {
@@ -1662,7 +1854,14 @@ function renderPanel() {
   panel.innerHTML = html || '';
   extOut.forEach((o, i) => { try { o.bind?.(o.whole ? panel : panel.querySelector(`[data-ext="${i}"]`)); } catch (e) { console.error('floorplan extension', e); } });
   panel.scrollTop = 0;
-  panel.querySelectorAll('[data-go]').forEach((a) => a.addEventListener('click', (ev) => { ev.preventDefault(); reveal(a.dataset.go); }));
+  panel.querySelectorAll('[data-go]').forEach((a) => a.addEventListener('click', (ev) => {
+    ev.preventDefault();
+    const id = a.dataset.go;
+    // in the Dependencies view, a file on the board is picked there, and another opens there
+    if (isDep(state.container) && state.view?.visible.includes(id)) { select(id); centerOn(id); }
+    else if (isDep(state.container) && depAble(id)) openDeps(id);
+    else reveal(id);
+  }));
   panel.querySelectorAll('[data-open]').forEach((a) => a.addEventListener('click', (ev) => { ev.preventDefault(); open(a.dataset.open); }));
   panel.querySelectorAll('[data-flow]').forEach((a) => a.addEventListener('click', (ev) => { ev.preventDefault(); startFlow(a.dataset.flow); }));
   panel.querySelectorAll('[data-sel]').forEach((a) => a.addEventListener('click', (ev) => { ev.preventDefault(); select(a.dataset.sel); centerOn(a.dataset.sel); }));
@@ -1819,6 +2018,8 @@ const index = [
   ...G.files.map((f) => ({ id: 'f:' + f.p, name: f.name, desc: f.d || '', path: f.p, kind: 'file', w: 3 })),
   ...routes.map((r, i) => ({ id: 'r:' + i, name: r.name, desc: r.d || '', path: `${r.m} ${r.p}`, kind: 'route', w: 3 })),
   ...G.files.flatMap((f) => (f.s || []).map((s, i) => ({ id: `s:${f.p}#${i}`, name: s[0], desc: s[4] || '', path: f.p, kind: symIcon(s[1]), w: 1 }))).filter((x) => parentOf.has(x.id)),
+  // import loops, found by "loop", "circular" or the names of the files in them
+  ...depLinks().loops.map((lp, i) => ({ id: 'dep:loop:' + i, name: 'Import loop: ' + lp.path.map((p) => files.get(p)?.name || p).join(' → '), desc: `${lp.files.length} files import each other: ${lp.path.map((p) => p.split('/').pop()).join(' → ')} · circular dependency`, path: lp.files.join(' '), kind: 'deps', w: 2 })),
 ];
 const pal = $('#palette'), sInput = $('#search'), sRes = $('#results');
 let sActive = 0, sItems = [];
@@ -1844,16 +2045,24 @@ function runSearch() {
   sRes.innerHTML = sItems.map((it, i) => {
     const ii = info(it.id);
     const ic = it.kind === 'route' ? `<span class="method" style="--m:${methodVar(ii.r.m)}">${h(ii.r.m)}</span>` : `<span class="ico" style="--c:${colorOf(ii)}">${icon(iconKey(ii))}</span>`;
-    return `<div class="r${i === 0 ? ' active' : ''}" data-i="${i}">${ic}<span class="rt"><div class="rn">${h(it.name)}</div><div class="rd">${h(it.desc || it.path)}</div></span><span class="rk">${h(it.kind === 'route' ? ii.r.p : it.kind)}</span></div>`;
+    const dep = depAble(it.id) ? `<button class="rdep" data-dep title="Show dependencies (Shift+Enter)">${iconI('deps')}Dependencies</button>` : '';
+    return `<div class="r${i === 0 ? ' active' : ''}" data-i="${i}">${ic}<span class="rt"><div class="rn">${h(it.name)}</div><div class="rd">${h(it.desc || it.path)}</div></span>${dep}<span class="rk">${h(it.kind === 'route' ? ii.r.p : it.kind === 'deps' ? 'loop' : it.kind)}</span></div>`;
   }).join('') || '<div class="empty">No matches</div>';
-  sRes.querySelectorAll('.r').forEach((r) => { r.addEventListener('mousedown', (ev) => { ev.preventDefault(); pick(+r.dataset.i); }); r.addEventListener('mousemove', () => setActive(+r.dataset.i)); });
+  sRes.querySelectorAll('.r').forEach((r) => { r.addEventListener('mousedown', (ev) => { ev.preventDefault(); pick(+r.dataset.i, !!ev.target.closest('[data-dep]')); }); r.addEventListener('mousemove', () => setActive(+r.dataset.i)); });
 }
 function setActive(i) { sActive = i; sRes.querySelectorAll('.r').forEach((r, k) => r.classList.toggle('active', k === i)); sRes.children[i]?.scrollIntoView({ block: 'nearest' }); }
-function pick(i) { const it = sItems[i]; if (!it) return; closePalette(); reveal(it.id); }
+function pick(i, deps = false) {
+  const it = sItems[i]; if (!it) return;
+  closePalette();
+  // in the Dependencies view, or with Shift+Enter / the row's button, a file or part opens there instead
+  if (isDep(it.id)) go(it.id);
+  else if ((deps || isDep(state.container)) && depAble(it.id)) openDeps(it.id);
+  else reveal(it.id);
+}
 sInput.addEventListener('input', runSearch);
 sInput.addEventListener('keydown', (ev) => {
   if (ev.key === 'ArrowDown' || ev.key === 'ArrowUp') { ev.preventDefault(); setActive(clamp(sActive + (ev.key === 'ArrowDown' ? 1 : -1), 0, sItems.length - 1)); }
-  else if (ev.key === 'Enter') pick(sActive);
+  else if (ev.key === 'Enter') pick(sActive, ev.shiftKey);
   else if (ev.key === 'Escape') closePalette();
 });
 pal.addEventListener('mousedown', (ev) => { if (ev.target === pal) closePalette(); });
@@ -2416,6 +2625,10 @@ window.addEventListener('keydown', (ev) => {
     else if (state.flow) stopFlow(); else if (state.selected) select(null); else up();
   }
   else if (ev.key === 'f' || ev.key === 'F') fit(true);
+  else if ((ev.key === 'd' || ev.key === 'D') && !ev.metaKey && !ev.ctrlKey && !ev.altKey) {
+    const t = typeof state.selected === 'string' ? state.selected : isDep(state.container) ? null : state.container;
+    if (t && depAble(t)) openDeps(t);
+  }
   else if (ev.key === 'p' || ev.key === 'P') $('#btn-panel').click();
   else if (ev.key === 'Enter' && typeof state.selected === 'string') open(state.selected);
   else if (state.flow && ev.key === 'ArrowRight') $('#fl-next')?.click();
@@ -2471,6 +2684,7 @@ window.Floorplan = Object.freeze({
   // navigation
   go, reveal, select, open, up, fit, render: (o) => render({ keepTransform: true, ...o }), refreshPanel: () => renderPanel(),
   showBoard, playFlow, startFlow, stopFlow: () => { if (state.flow) stopFlow(); },
+  deps: { open: openDeps, able: depAble, loops: () => depLinks().loops, links: depLinks, isView: isDep },
   freeArea: () => freeArea(),
   closeMenus: () => { closeMenu(); fm.classList.remove('open'); legendEl.classList.remove('open'); },
   // asking

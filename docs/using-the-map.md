@@ -89,12 +89,26 @@ Appears when Claude or Codex has just changed things. It lays the changed cards 
 Every page of your app that Floorplan detected. Pick one to see everything behind it: its components, the requests it makes, the server code that answers them, the data they touch, and outside services.
 
 ### Dependencies
-Pick any file or component to see what uses it and what it uses, a few steps out. Open it from the header, from **Dependencies** in a file's details, or press **/** inside it to find a file.
+Any file, component or part, with what uses it and what it uses, a few steps out each way. It's drawn like the rest of the map, with the same cards, lines, brackets, zoom and details panel, but laid out one column per step.
 
-- **Layout:** files that use the one you picked are on the left, and files it uses are on the right, grouped by part of the app. Lines point from a file to the file it uses.
-- **Steps:** choose 1 to 4. Two steps means "what uses the things that use this", and the same on the other side. **Used by** and **Uses** show one side only.
-- **Getting around:** click a card to centre on it, use **Back** to retrace your steps, and the magnifier on a card shows it on the map.
-- **Import loops:** files that import each other are marked **In an import loop**, and the lines between them are red and dashed. **Overview** lists every loop, plus the files the most others use and the files that use the most others.
+**Ways in:**
+- **Dependencies** in the header lists the import loops, the most-used files and the files that use the most others, and has a search box.
+- Right-click any card, choose **Show dependencies**, or select a card and press **D**.
+- In a card's details, choose **Show dependencies**.
+- In the search (**/**), the **Dependencies** button on a result, or **Shift+Enter**, opens the view.
+
+**Reading it:**
+- **Layout:** what uses the file is on the left, the file is in the middle, and what it uses is on the right. Lines point from a file to the file it uses.
+- **Cards:** each card's footer shows its part of the app and how many files use it and it uses.
+- **Steps:** 1 to 4 steps out, using **Steps** under the title. Two steps means "what uses the things that use this". **Used by** and **Uses** show one side only.
+- **A part:** a part (say, Components) shows its files that connect to the rest of the app under **Inside Components**, with what uses them and what they use on either side.
+
+**Getting around:**
+- Click a card to see its details, and double-click to centre the view on it.
+- The breadcrumbs (Overview / Website / Components / App icon / Dependencies) and **Backspace** take you back to the map. **Show on the map** in a card's right-click menu does too.
+- A link to the view (`#v=dep:f:<path>`) opens it directly.
+
+**Import loops:** files that import each other are marked **Import loop**, with red dashed lines between them. Each loop has its own view, in order (from the header menu, a file's details, or by searching "loop"), and Health lists them all with a prompt to untangle them.
 
 What counts as "uses": imports, plus components a template uses without importing them. That covers components registered once for every template (`app.component(...)`, a folder of them through `import.meta.glob`, unplugin-vue-components' `components.d.ts`), composables and stores listed in unplugin-auto-import's `auto-imports.d.ts`, and Nuxt's auto-imports. Type declaration files (`.d.ts`) are left out. Imports through `@/` and `~/` count too. The same lookups work from the command line: `node floorplan/query.mjs deps <file> [--depth 2]` and `node floorplan/query.mjs loops`.
 
