@@ -18,6 +18,7 @@ import { findScreens } from './lib/screens.mjs';
 import { createResolver, applyGlobalUsings } from './lib/resolve.mjs';
 import { resolveRoutes, matchCalls, matchWayfinder, inertiaLinks } from './lib/routes.mjs';
 import { nuxtAutoImports } from './lib/nuxt.mjs';
+import { vueGlobalComponents } from './lib/vue-components.mjs';
 import { serverlessRoutes } from './lib/serverless.mjs';
 import { edgeFunctionRoutes } from './lib/supabase-functions.mjs';
 
@@ -158,6 +159,10 @@ for (const f of files) {
 // Nuxt's auto-imports: components and composables a file uses with no import line (lib/nuxt.mjs)
 const nuxt = nuxtAutoImports(root, files);
 for (const e of nuxt.edges) edges.push(e);
+// Vue components registered globally (app.component, a glob of them, unplugin-vue-components) and used in
+// templates with no import line (lib/vue-components.mjs)
+const vueGlobals = vueGlobalComponents(root, files, edges);
+for (const e of vueGlobals.edges) edges.push(e);
 // merge duplicate edges (same from/to)
 const edgeMap = new Map();
 for (const e of edges) {
@@ -328,6 +333,10 @@ for (const a of nuxt.apps) {
   line();
 }
 
+if (vueGlobals.edges.length) {
+  line(`VUE  ${vueGlobals.files} file(s) linked to what they use without importing it: ${vueGlobals.components} globally registered component(s) and ${vueGlobals.functions} auto-imported function(s) (${vueGlobals.edges.length} links)`);
+  line();
+}
 line(`HTTP  ${routes.length} route definitions, ${http.length} call->route matches (cross-file links not visible to imports)`);
 const httpDir = new Map();
 for (const h of http) {
@@ -428,6 +437,7 @@ else {
       httpMatches: http.length,
       importEdges: scan.edges.length,
       autoImportLinks: nuxt.edges.length,
+      globalComponentLinks: vueGlobals.edges.length,
       wayfinderLinks: wayfinderLinks.length,
       inertiaPages: inertia.hints.length,
       unresolvedImports: unresolved,

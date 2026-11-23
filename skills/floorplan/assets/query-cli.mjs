@@ -5,6 +5,8 @@
 //        node floorplan/query.mjs find "<words>" [--kind module|file|endpoint|symbol] [--limit 15]
 //        node floorplan/query.mjs show <id>
 //        node floorplan/query.mjs path <fromId> <toId>
+//        node floorplan/query.mjs deps <file> [--depth 2]    what a file uses and what uses it, steps away each way
+//        node floorplan/query.mjs loops                      files that import each other in a loop
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -14,7 +16,7 @@ const G = JSON.parse(fs.readFileSync(path.join(here, 'graph.json'), 'utf8').repl
 const q = createGraphQuery(G);
 const argv = process.argv.slice(2);
 const flag = (name) => { const i = argv.indexOf('--' + name); if (i < 0) return undefined; const v = argv[i + 1]; argv.splice(i, 2); return v; };
-const kind = flag('kind'), limit = flag('limit');
+const kind = flag('kind'), limit = flag('limit'), depth = flag('depth');
 const [cmd, ...rest] = argv;
 try {
   let out;
@@ -22,7 +24,9 @@ try {
   else if (cmd === 'find') out = q.find(rest.join(' '), kind, limit);
   else if (cmd === 'show') out = q.show(rest[0]);
   else if (cmd === 'path') out = q.path(rest[0], rest[1]);
-  else { console.log('commands: overview | find "<words>" [--kind module|file|endpoint|symbol] | show <id> | path <fromId> <toId>'); process.exit(cmd ? 1 : 0); }
+  else if (cmd === 'deps') out = q.deps(rest[0], depth, limit ? +limit : 60);
+  else if (cmd === 'loops') out = q.loops();
+  else { console.log('commands: overview | find "<words>" [--kind module|file|endpoint|symbol] | show <id> | path <fromId> <toId> | deps <file> [--depth 2] | loops'); process.exit(cmd ? 1 : 0); }
   console.log(JSON.stringify(out, null, 1));
 } catch (e) {
   console.log(JSON.stringify({ error: e.message }));

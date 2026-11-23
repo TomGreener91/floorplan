@@ -61,6 +61,7 @@ A count of important issues, and a plain-language list of problems the scan foun
 - servers that let any website call them, flagged as worth fixing when login cookies go along too;
 - endpoints that let anyone change or read data without signing in, ASP.NET Core apps included;
 - files nothing uses;
+- files that import each other in a loop (see [Dependencies](#dependencies));
 - files over about 1,000 lines, which AI struggles to edit safely.
 
 Below the count, **What was checked** says what each check had to look at: how many endpoints, Supabase tables, Firebase rules files, Stripe webhooks and files it read, or that it found none. A check with nothing to look at can't find a problem, so a short list isn't always a clean bill of health. The line stands out when it matters, for example when the code looks like it runs a server (a `createServer` call, `Deno.serve`, a Supabase Edge Function, PHP that reads `$_POST` or declares `#[Route]`s) but no endpoints were found, which usually means they're set up in a way Floorplan doesn't recognise yet.
@@ -86,6 +87,16 @@ Appears when Claude or Codex has just changed things. It lays the changed cards 
 
 ### Screens
 Every page of your app that Floorplan detected. Pick one to see everything behind it: its components, the requests it makes, the server code that answers them, the data they touch, and outside services.
+
+### Dependencies
+Pick any file or component to see what uses it and what it uses, a few steps out. Open it from the header, from **Dependencies** in a file's details, or press **/** inside it to find a file.
+
+- **Layout:** files that use the one you picked are on the left, and files it uses are on the right, grouped by part of the app. Lines point from a file to the file it uses.
+- **Steps:** choose 1 to 4. Two steps means "what uses the things that use this", and the same on the other side. **Used by** and **Uses** show one side only.
+- **Getting around:** click a card to centre on it, use **Back** to retrace your steps, and the magnifier on a card shows it on the map.
+- **Import loops:** files that import each other are marked **In an import loop**, and the lines between them are red and dashed. **Overview** lists every loop, plus the files the most others use and the files that use the most others.
+
+What counts as "uses": imports, plus components a template uses without importing them. That covers components registered once for every template (`app.component(...)`, a folder of them through `import.meta.glob`, unplugin-vue-components' `components.d.ts`), composables and stores listed in unplugin-auto-import's `auto-imports.d.ts`, and Nuxt's auto-imports. Type declaration files (`.d.ts`) are left out. Imports through `@/` and `~/` count too. The same lookups work from the command line: `node floorplan/query.mjs deps <file> [--depth 2]` and `node floorplan/query.mjs loops`.
 
 ### Export
 Saves a copy of the map to send to anyone, such as a teammate, a client, or someone without Claude or Codex. It's one HTML file that opens in any browser with nothing to install. The copy has the whole map, search, screens, the tour and flows, but no Ask bar, no **Fix with Claude** or **Build this** requests, no editor links, and nothing about your computer, like its folder path. An **Exported** label beside the title shows the date, and a small **Made with Floorplan** link at the bottom leads here.

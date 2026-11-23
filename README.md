@@ -67,7 +67,7 @@ They also work together: map your app with Floorplan, then use Archify to draw o
 <td width="50%" valign="top">
 
 **🗺️ A map at every zoom**<br>
-Start with the whole app, then double-click into a part, a group of files, a file, and its endpoints. Each view shows what it's used by and what it uses.
+Start with the whole app, then double-click into a part, a group of files, a file, and its endpoints. Each view shows what it's used by and what it uses. **Dependencies** (this fork) follows any file or component a few steps out each way and shows import loops in red.
 
 </td>
 <td width="50%" valign="top">

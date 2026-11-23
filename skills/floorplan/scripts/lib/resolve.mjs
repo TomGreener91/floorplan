@@ -133,6 +133,16 @@ export function createResolver(root, files) {
       }
       if (opts.paths) { paths = Object.entries(opts.paths); pathsDir = dir; }
       if (typeof opts.baseUrl === 'string') baseUrl = P.normalize(P.join(dir, opts.baseUrl));
+      // A "solution" tsconfig (create-vue, Vite's templates) has no options of its own, only references to
+      // tsconfig.app.json and the like, which hold the paths (@/* → ./src/*): use theirs, the first that has them.
+      if (paths === undefined && Array.isArray(json.references)) {
+        for (const r of json.references) {
+          if (typeof r?.path !== 'string' || !r.path.startsWith('.')) continue;
+          const refFile = P.normalize(P.join(dir, r.path.endsWith('.json') ? r.path : r.path + '/tsconfig.json'));
+          const ref = fileSet.has(refFile) && refFile !== file ? loadTsconfig(refFile) : null;
+          if (ref?.hasPaths) { paths = ref.paths; pathsDir = ref.pathsDir; if (ref.hasBaseUrl && baseUrl === undefined) baseUrl = ref.baseDir; break; }
+        }
+      }
       cfg = { paths: paths || [], pathsDir, hasPaths: paths !== undefined,
         baseDir: baseUrl ?? pathsDir, hasBaseUrl: baseUrl !== undefined };
     }
@@ -152,6 +162,13 @@ export function createResolver(root, files) {
     return found;
   };
   const packageJsons = new Map(dirsWith('package.json').map((dir) => [dir, readJsonLoose(path.join(root, dir, 'package.json'))]));
+  /** The folder of the package.json nearest above dir, or the codebase root. */
+  const nearestPackageDir = (dir) => {
+    for (let d = dir || '.'; ; d = P.dirname(d)) {
+      if (packageJsons.has(d)) return d === '.' ? '' : d;
+      if (d === '.' || d === '' || d === '/') return '';
+    }
+  };
   const workspacePkgs = new Map();
   for (const [dir, pj] of packageJsons) if (pj?.name) workspacePkgs.set(pj.name, { dir, pj });
 
@@ -216,6 +233,13 @@ export function createResolver(root, files) {
     }
     const wf = wayfinder(from, mapped.length ? mapped : /^[@~#]\/(actions|routes|wayfinder)(\/|$)/.test(spec) ? [spec.slice(2)] : []);
     if (wf) return wf;
+    // `@/` and `~/` can't be npm packages (a scope needs a name), so with no alias config that maps them they're the
+    // usual Vue/Vite/Nuxt shorthand for the project's src/ (or its root): try there before calling it a package.
+    if (/^[@~]\//.test(spec)) {
+      const pkg = nearestPackageDir(P.dirname(from));
+      for (const base of [P.join(pkg, 'src'), pkg]) { const hit = tryJsFile(P.join(base, spec.slice(2))); if (hit) return { file: hit }; }
+      return { unresolved: true };
+    }
     if (spec.startsWith('node:')) return { builtin: true };
     const parts = spec.split('/');
     const pkgName = spec.startsWith('@') ? parts.slice(0, 2).join('/') : parts[0];

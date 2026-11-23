@@ -136,6 +136,8 @@ The Antigravity changes are mostly self-contained:
 - the `antigravity` engine in `assets/serve.mjs`
 - `writeAgyRule` in `scripts/lib/claudemd.mjs`
 - `.antigravity-plugin/`
+- the Dependencies view: `assets/ui/35-deps.js`, `deps` / `loops` / `fileLinks` in `assets/graph-query.js`, `importLoops` in `scripts/lib/health.mjs`
+- Vue components with no import line: `scripts/lib/vue-components.mjs`, and the `@/` handling in `scripts/lib/resolve.mjs`
 - this page
 
 Conflicts usually land in `SKILL.md` and the viewer's `AGENT` block.

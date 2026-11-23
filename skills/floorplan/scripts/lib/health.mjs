@@ -2183,6 +2183,43 @@ export function buildHealth({ graph, scan, arch, root }) {
     });
   }
 
+  // ---------- import loops ----------
+  // Files that import each other in a loop (A → B → A, or round several files): change one and the others
+  // can break, they can't be understood or tested apart, and in JavaScript a loop can leave an import undefined
+  // at start-up. Found as strongly connected groups of the file → file links (imports, plus the components and
+  // composables a file uses without importing), ignoring tests.
+  {
+    const loops = importLoops(graph.links, (p) => !TEST_FILE.test(p) && !/\.d\.[cm]?ts$/.test(p));
+    if (loops.length) {
+      const inLoop = new Map(); // file → the loop it's in
+      loops.forEach((lp, i) => lp.files.forEach((f) => inLoop.set(f, i)));
+      const files = [...inLoop.keys()];
+      const big = loops.filter((lp) => lp.files.length >= 3).length;
+      const show = loops.slice(0, 12);
+      issues.push({
+        id: 'import-loops', kind: 'import-cycle', severity: big || loops.length >= 3 ? 'medium' : 'low',
+        title: loops.length === 1 ? (loops[0].files.length === 2 ? 'Two files import each other' : `${loops[0].files.length} files import each other in a loop`) : `${loops.length} loops of files that import each other`,
+        detail: `${loops.length === 1 ? 'These files depend' : 'In each loop, the files depend'} on each other in a circle, so none of them can be changed, tested or reused on its own, and in JavaScript a loop can leave an import undefined while the app starts. They're often the first sign of tangled code. Loops made only of type imports are harmless when the app runs, but still tie the files together.`,
+        items: files.slice(0, 40).map((p) => 'f:' + p),
+        notes: Object.fromEntries(files.slice(0, 40).map((p) => {
+          const lp = loops[inLoop.get(p)];
+          const others = lp.files.filter((x) => x !== p);
+          return ['f:' + p, `In a loop with ${others.slice(0, 3).map((x) => x.split('/').pop()).join(', ')}${others.length > 3 ? ` and ${others.length - 3} more` : ''}`];
+        })),
+        locations: files.map((p) => ({ file: p, line: 1 })),
+        loops: show.map((lp) => lp.path),
+        fix: [
+          `Refactor plan: these files import each other in a loop (each line is one loop, following the imports):`,
+          ...show.map((lp) => `- ${[...lp.path, lp.path[0]].join(' → ')}`),
+          loops.length > show.length ? `- …and ${loops.length - show.length} more` : null,
+          ``,
+          `For each loop, read the files and find the import that shouldn't be there: usually the lower-level file (a shared component, a utility, a store) reaching back up to something that uses it. Break the loop without changing behaviour, for example by moving the shared code into a new file both can import, passing what's needed in (props, emits or provide/inject for Vue components, a callback or parameter elsewhere), or importing lazily where one side really does need the other. Skip a loop made only of \`import type\` lines unless it's easy to remove.`,
+          `Keep every public name and behaviour the same, run the build and the tests after each loop, and afterwards list which imports you removed or moved.`,
+        ].filter((x) => x !== null).join('\n'),
+      });
+    }
+  }
+
   // ---------- frontend hard-coded to localhost ----------
   const local = [];
   for (const f of graph.files) if (isFrontend(f.p)) for (const x of findings(f.p)) if (x.k === 'localhost') local.push({ file: f.p, line: x.line });
@@ -2199,7 +2236,7 @@ export function buildHealth({ graph, scan, arch, root }) {
     });
   }
 
-  const KIND_ORDER = ['secret', 'public-env-secret', 'database-rules', 'stripe-webhook', 'env-file', 'unprotected-endpoint', 'cors', 'large-file', 'hardcoded-url', 'unused-file'];
+  const KIND_ORDER = ['secret', 'public-env-secret', 'database-rules', 'stripe-webhook', 'env-file', 'unprotected-endpoint', 'cors', 'large-file', 'import-cycle', 'hardcoded-url', 'unused-file'];
   issues.sort((a, b) => SEV_ORDER[a.severity] - SEV_ORDER[b.severity] || KIND_ORDER.indexOf(a.kind) - KIND_ORDER.indexOf(b.kind) || (b.locations?.length || 0) - (a.locations?.length || 0));
   const kept = issues.slice(0, 40);
   const summary = { high: 0, medium: 0, low: 0 };
@@ -2335,4 +2372,70 @@ function readHead(file, max) {
 function stemOf(p) {
   const base = p.split('/').pop().replace(/\.[^.]+$/, '');
   return base === 'index' ? p.split('/').slice(-2, -1)[0] : base;
+}
+
+/**
+ * Loops of files that import each other: the strongly connected groups (Tarjan's algorithm, without recursion)
+ * of the file → file links that keep(file) allows, largest first. Each has its files and one loop through them
+ * (the shortest from its first file), as a path of files.
+ */
+export function importLoops(links, keep = () => true) {
+  const out = new Map();
+  for (const l of links || []) {
+    if (!l.a?.startsWith('f:') || !l.b?.startsWith('f:') || l.a === l.b) continue;
+    if (!['import', 'call', undefined].includes(l.k)) continue;
+    const a = l.a.slice(2), b = l.b.slice(2);
+    if (!keep(a) || !keep(b)) continue;
+    if (!out.has(a)) out.set(a, new Set());
+    out.get(a).add(b);
+    if (!out.has(b)) out.set(b, new Set());
+  }
+  const index = new Map(), low = new Map(), onStack = new Set(), stack = [], groups = [];
+  let counter = 0;
+  for (const start of out.keys()) {
+    if (index.has(start)) continue;
+    const work = [[start, [...out.get(start)], 0]];
+    index.set(start, counter); low.set(start, counter); counter++; stack.push(start); onStack.add(start);
+    while (work.length) {
+      const top = work[work.length - 1];
+      const [v, next] = top;
+      if (top[2] < next.length) {
+        const w = next[top[2]++];
+        if (!index.has(w)) {
+          index.set(w, counter); low.set(w, counter); counter++; stack.push(w); onStack.add(w);
+          work.push([w, [...out.get(w)], 0]);
+        } else if (onStack.has(w)) low.set(v, Math.min(low.get(v), index.get(w)));
+        continue;
+      }
+      work.pop();
+      if (work.length) { const u = work[work.length - 1][0]; low.set(u, Math.min(low.get(u), low.get(v))); }
+      if (low.get(v) === index.get(v)) {
+        const group = [];
+        let w;
+        do { w = stack.pop(); onStack.delete(w); group.push(w); } while (w !== v);
+        if (group.length > 1) groups.push(group.sort());
+      }
+    }
+  }
+  return groups
+    .map((files) => {
+      const inGroup = new Set(files);
+      // the shortest loop through the first file, staying inside the group
+      const first = files[0];
+      const prev = new Map([[first, null]]);
+      const queue = [first];
+      let end = null;
+      while (queue.length && !end) {
+        const v = queue.shift();
+        for (const w of [...out.get(v)].sort()) {
+          if (!inGroup.has(w)) continue;
+          if (w === first) { end = v; break; }
+          if (!prev.has(w)) { prev.set(w, v); queue.push(w); }
+        }
+      }
+      const path = [];
+      for (let v = end; v; v = prev.get(v)) path.unshift(v);
+      return { files, path: path.length ? path : files };
+    })
+    .sort((a, b) => b.files.length - a.files.length || a.files[0].localeCompare(b.files[0]));
 }

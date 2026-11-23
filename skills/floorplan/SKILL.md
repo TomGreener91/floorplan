@@ -170,10 +170,12 @@ It writes `floorplan/<project>-map.html` unless given a file. `--include` defaul
   - CORS that allows every website (worth fixing when credentials go along);
   - endpoints that let anyone change or read data without signing in (including a sign-in check placed above the route line);
   - files nothing uses;
+  - files that import each other in a loop (`import-cycle`), with a refactor prompt naming each loop;
   - files over ~1,000 lines, which AI struggles to edit safely.
 
   Each issue has **Show on map** (highlights the affected files and endpoints with notes) and **Fix with Antigravity**, **Fix with Claude** or **Fix with Codex** (a ready-to-paste prompt naming the exact files and lines and the safe fix). It's computed by `scripts/lib/health.mjs` during scan and build, and it never stores secret values, only the file, line and a masked hint. Treat it as a quick automatic check, not a security audit.
 - **Screens.** The build detects the app's screens (Next.js, React Router, Vue, SvelteKit, Remix, Nuxt, Astro, Expo, Angular, TanStack, Shopify theme templates) with `scripts/lib/screens.mjs`. It also works out what sits behind each one: its components, the requests it makes, the server code and data that answer them, and outside services. A **Screens** button lets people start from the page they know.
+- **Dependencies.** The header's **Dependencies** opens a view of one file or component: what uses it (left) and what it uses (right), 1 to 4 steps out, grouped by part, with loops of files that import each other in red; with nothing picked it lists the loops and the most-used files. For a question like "what uses this component?" or "where are the import loops?", run `node floorplan/query.mjs deps <file> [--depth 2]` or `node floorplan/query.mjs loops`. Vue components registered once for every template (app.component, import.meta.glob, unplugin-vue-components) and functions in unplugin-auto-import's auto-imports.d.ts count as used where they're used (`scripts/lib/vue-components.mjs`), and `@/` / `~/` imports mean `src/` when no alias config says otherwise.
 - **Start here.** A one-minute tour runs on first open and can be replayed from the header. It uses your `tour`, or builds one automatically.
 - **Plain words by default.** Connection types read "Uses", "Web requests", "Background jobs". Common technical terms are underlined and explained on hover. **Filters → Show technical detail** switches to developer terms and shows exports.
 

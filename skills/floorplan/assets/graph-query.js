@@ -42,6 +42,12 @@ function createGraphQuery(G) {
     if (nodes.has(id)) return 'n:' + id;
     const m = /^([A-Z]+)\s+(\/\S*)$/i.exec(id);
     if (m) { const ri = routes.findIndex((r) => r.m === m[1].toUpperCase() && r.p === m[2]); if (ri >= 0) return 'r:' + ri; }
+    // just a file's name ("AppIcon.vue", or "AppIcon"), when only one file has it
+    if (id && !id.includes(':')) {
+      const t = id.toLowerCase();
+      const hits = G.files.filter((f) => { const lp = f.p.toLowerCase(); return lp.endsWith('/' + t) || lp.replace(/\.[^./]+$/, '').endsWith('/' + t) || lp.replace(/\.[^./]+$/, '') === t; });
+      if (hits.length === 1) return 'f:' + hits[0].p;
+    }
     return id;
   }
 
@@ -173,7 +179,107 @@ function createGraphQuery(G) {
     };
   }
 
-  return { find, show, path, overview, exists, brief };
+  // ---------- file dependencies ----------
+  // Which files each file uses (imports, plus components and composables used without an import line) and is
+  // used by, and the loops of files that import each other: strongly connected groups, found with Tarjan's
+  // algorithm without recursion. Test files are left out of loops, as in Health.
+  const TEST = /(^|\/)(__tests__|__mocks__|tests?|spec|e2e|cypress)\/|\.(test|spec|stories|e2e)\.[a-z]+$/i;
+  const DECL = /\.d\.[cm]?ts$/;
+  let fileGraph = null;
+  function fileLinks() {
+    if (fileGraph) return fileGraph;
+    const out = new Map(), inn = new Map();
+    const add = (m, a, b) => { if (!m.has(a)) m.set(a, new Set()); m.get(a).add(b); };
+    for (const l of G.links || []) {
+      if (!l.a?.startsWith('f:') || !l.b?.startsWith('f:') || l.a === l.b) continue;
+      if (l.k && l.k !== 'import' && l.k !== 'call') continue;
+      const a = l.a.slice(2), b = l.b.slice(2);
+      // type declarations (a generated components.d.ts lists every component) aren't part of how the app fits together
+      if (!files.has(a) || !files.has(b) || DECL.test(a) || DECL.test(b)) continue;
+      add(out, a, b); add(inn, b, a);
+    }
+    const isTest = (p) => TEST.test(p) || nodes.get(files.get(p)?.n)?.kind === 'test';
+    const index = new Map(), low = new Map(), onStack = new Set(), stack = [], groups = [];
+    let counter = 0;
+    const next = (v) => [...(out.get(v) || [])].filter((w) => !isTest(w));
+    for (const start of out.keys()) {
+      if (index.has(start) || isTest(start)) continue;
+      const work = [[start, next(start), 0]];
+      index.set(start, counter); low.set(start, counter); counter++; stack.push(start); onStack.add(start);
+      while (work.length) {
+        const top = work[work.length - 1];
+        const v = top[0];
+        if (top[2] < top[1].length) {
+          const w = top[1][top[2]++];
+          if (!index.has(w)) { index.set(w, counter); low.set(w, counter); counter++; stack.push(w); onStack.add(w); work.push([w, next(w), 0]); }
+          else if (onStack.has(w)) low.set(v, Math.min(low.get(v), index.get(w)));
+          continue;
+        }
+        work.pop();
+        if (work.length) { const u = work[work.length - 1][0]; low.set(u, Math.min(low.get(u), low.get(v))); }
+        if (low.get(v) === index.get(v)) {
+          const group = []; let w;
+          do { w = stack.pop(); onStack.delete(w); group.push(w); } while (w !== v);
+          if (group.length > 1) groups.push(group.sort());
+        }
+      }
+    }
+    const loops = groups.map((list) => {
+      // one loop through the group: the shortest from its first file back to itself
+      const inGroup = new Set(list), first = list[0], prev = new Map([[first, null]]), queue = [first];
+      let end = null;
+      while (queue.length && !end) {
+        const v = queue.shift();
+        for (const w of [...out.get(v)].sort()) {
+          if (!inGroup.has(w)) continue;
+          if (w === first) { end = v; break; }
+          if (!prev.has(w)) { prev.set(w, v); queue.push(w); }
+        }
+      }
+      const path = [];
+      for (let v = end; v; v = prev.get(v)) path.unshift(v);
+      return { files: list, path: path.length ? path : list };
+    }).sort((a, b) => b.files.length - a.files.length || a.files[0].localeCompare(b.files[0]));
+    const loopOf = new Map();
+    loops.forEach((lp, i) => lp.files.forEach((f) => loopOf.set(f, i)));
+    fileGraph = { out, inn, loops, loopOf };
+    return fileGraph;
+  }
+  /** What a file uses and what uses it, up to depth steps away each way. */
+  function deps(id, depth = 2, limit = 60) {
+    id = normId(id);
+    const p = id.startsWith('f:') ? id.slice(2) : '';
+    if (!files.has(p)) throw new Error('deps takes a file (a path, an f: id or a file name); use find first.');
+    const { out, inn, loops, loopOf } = fileLinks();
+    const d = Math.max(1, Math.min(8, Math.floor(+depth) || 2));
+    const walk = (adj) => {
+      const dist = new Map([[p, 0]]);
+      let frontier = [p];
+      for (let k = 1; k <= d && frontier.length; k++) {
+        const nextF = [];
+        for (const x of frontier) for (const y of adj.get(x) || []) if (!dist.has(y)) { dist.set(y, k); nextF.push(y); }
+        frontier = nextF;
+      }
+      dist.delete(p);
+      return dist;
+    };
+    const row = (q, k) => ({ id: 'f:' + q, name: files.get(q).name || q.split('/').pop(), part: files.get(q).n, steps: k, usedBy: inn.get(q)?.size || 0, uses: out.get(q)?.size || 0, ...(loopOf.has(q) && loopOf.get(q) === loopOf.get(p) ? { inLoopWithThis: true } : {}) });
+    const list = (dist) => [...dist].map(([q, k]) => row(q, k)).sort((a, b) => a.steps - b.steps || a.id.localeCompare(b.id));
+    const uses = list(walk(out)), usedBy = list(walk(inn));
+    const cut = (arr) => (limit && arr.length > limit ? { shown: arr.slice(0, limit), more: arr.length - limit } : { shown: arr });
+    const lp = loopOf.has(p) ? loops[loopOf.get(p)] : null;
+    return {
+      file: brief(id), steps: d,
+      usedBy: cut(usedBy), uses: cut(uses),
+      ...(lp ? { loop: { note: 'This file is in a loop of files that import each other.', path: [...lp.path, lp.path[0]].map((x) => 'f:' + x), files: lp.files.length } } : {}),
+    };
+  }
+  /** Loops of files that import each other, largest first. */
+  function loopList() {
+    return fileLinks().loops.map((lp) => ({ files: lp.files.length, path: [...lp.path, lp.path[0]].map((x) => 'f:' + x) }));
+  }
+
+  return { find, show, path, overview, exists, brief, deps, loops: loopList, fileLinks, normId };
 }
 
 // What an answer looks like, for both engines (JSON Schema).
@@ -242,7 +348,7 @@ function floorplanFlowInstructions(G, engine) {
 
 function floorplanAskInstructions(G, engine) {
   const tools = engine === 'cli'
-    ? `Query the map from the shell: \`node floorplan/query.mjs overview\`, \`node floorplan/query.mjs find "<words>" [--kind module|file|endpoint|symbol]\`, \`node floorplan/query.mjs show <id>\`, \`node floorplan/query.mjs path <fromId> <toId>\`. Every result is JSON with ids. Start with the map; read or grep source files when you need specifics the map does not have.`
+    ? `Query the map from the shell: \`node floorplan/query.mjs overview\`, \`node floorplan/query.mjs find "<words>" [--kind module|file|endpoint|symbol]\`, \`node floorplan/query.mjs show <id>\`, \`node floorplan/query.mjs path <fromId> <toId>\`, \`node floorplan/query.mjs deps <file> [--depth 2]\` (what a file uses and what uses it, steps away each way) and \`node floorplan/query.mjs loops\` (files that import each other in a loop). Every result is JSON with ids. Start with the map; read or grep source files when you need specifics the map does not have.`
     : `Use the tools find_items, get_item and dependency_path to explore the map. You cannot read source files, so answer from the map's names, descriptions, endpoints and connections, and say so when a question needs the code itself.`;
   const bp = G.meta?.blueprint;
   return [

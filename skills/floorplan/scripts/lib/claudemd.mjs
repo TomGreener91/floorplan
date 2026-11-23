@@ -23,6 +23,7 @@ function block(rel, from = 'the folder this file is in') {
 - \`node ${rel}/query.mjs find "<words>"\`: modules, files and endpoints that match
 - \`node ${rel}/query.mjs show <file path | module id | "GET /path">\`: what it is, what it uses, what uses it
 - \`node ${rel}/query.mjs path <from> <to>\`: how two things connect
+- \`node ${rel}/query.mjs deps <file> [--depth 2]\`: what a file or component uses and what uses it, a few steps out (\`loops\` lists files that import each other)
 - \`node ${rel}/query.mjs overview\`: the whole system at a glance
 
 The map can lag behind recent edits, so confirm in the code before changing anything. Open it with \`node ${rel}/serve.mjs\`. After big changes, update it with the floorplan skill (the user can just ask to "update the floorplan"; only changed files are re-read).
