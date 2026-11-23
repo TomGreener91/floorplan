@@ -98,7 +98,7 @@ Any file, component or part, with what uses it and what it uses, a few steps out
 - In the search (**/**), the **Dependencies** button on a result, or **Shift+Enter**, opens the view.
 
 **Reading it:**
-- **Layout:** what uses the file is on the left, the file is in the middle, and what it uses is on the right. Lines point from a file to the file it uses.
+- **Layout:** what the file uses is on the left, the file is in the middle, and what uses it is on the right, so it reads from building blocks to what's built on them. **Swap sides** under the title flips that (remembered on this device). The map's own part views keep **Used by** on the left.
 - **Cards:** each card's footer shows its part of the app and how many files use it and it uses.
 - **Steps:** 1 to 4 steps out, using **Steps** under the title. Two steps means "what uses the things that use this". **Used by** and **Uses** show one side only.
 - **A part:** a part (say, Components) shows its files that connect to the rest of the app under **Inside Components**, with what uses them and what they use on either side.
@@ -111,6 +111,14 @@ Any file, component or part, with what uses it and what it uses, a few steps out
 **Import loops:** files that import each other are marked **Import loop**, with red dashed lines between them. Each loop has its own view, in order (from the header menu, a file's details, or by searching "loop"), and Health lists them all with a prompt to untangle them.
 
 What counts as "uses": imports, plus components a template uses without importing them. That covers components registered once for every template (`app.component(...)`, a folder of them through `import.meta.glob`, unplugin-vue-components' `components.d.ts`), composables and stores listed in unplugin-auto-import's `auto-imports.d.ts`, and Nuxt's auto-imports. Type declaration files (`.d.ts`) are left out. Imports through `@/` and `~/` count too. The same lookups work from the command line: `node floorplan/query.mjs deps <file> [--depth 2]` and `node floorplan/query.mjs loops`.
+
+### All files
+Every file that makes up the project, as a list: open it from the top of the **Dependencies** menu, or **All files** in the overview's details.
+
+- **Search** by name, path or description, and filter by **kind** (components, pages, composables, stores, services, utilities, tests, types, styles, config, scripts) or **part**.
+- **Shortcuts:** **In a loop** shows the files in import loops, and **Used by nothing** shows files nothing imports (pages and tests aside).
+- **Sorting:** click any column to sort by it: uses, used by, lines, or Health issues.
+- **Opening a file:** click a row (or use the arrow keys) to see it in the details panel. Double-click, or **Dependencies** on the row, opens its Dependencies view, and **Map** shows it on the map.
 
 ### Export
 Saves a copy of the map to send to anyone, such as a teammate, a client, or someone without Claude or Codex. It's one HTML file that opens in any browser with nothing to install. The copy has the whole map, search, screens, the tour and flows, but no Ask bar, no **Fix with Claude** or **Build this** requests, no editor links, and nothing about your computer, like its folder path. An **Exported** label beside the title shows the date, and a small **Made with Floorplan** link at the bottom leads here.

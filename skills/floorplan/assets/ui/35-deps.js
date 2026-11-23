@@ -1,7 +1,7 @@
 // Dependencies: the ways into the map's Dependencies view (viewer.html, "dependencies"), which shows a file or
 // part with what uses it on the left and what it uses on the right, drawn like the rest of the map.
-//   - the header's Dependencies menu: find a file or part, the import loops, the most-used files, and the
-//     files that use the most others (like the Screens menu);
+//   - the header's Dependencies menu: All files (a searchable list of every file), find a file or part, the
+//     import loops, the most-used files, and the files that use the most others (like the Screens menu);
 //   - a Dependencies section in a file's or part's details;
 //   - right-click → Show dependencies, the D key, and the search's Dependencies button (in viewer.html).
 (() => {
@@ -38,6 +38,12 @@
   document.head.appendChild(style);
 
   const go = (id) => { closeMenu(); SC.deps.open(id); };
+  // the All files list, searched for q when given
+  const allFiles = (q = '') => {
+    SC.deps.allFiles();
+    if (!q) return;
+    setTimeout(() => { const input = document.querySelector('#listview .lv-q'); if (input) { input.value = q; input.dispatchEvent(new Event('input')); } }, 60);
+  };
   const goLoop = (i) => { closeMenu(); SC.go('dep:loop:' + i); };
 
   // ---------- header menu ----------
@@ -49,6 +55,7 @@
   const files = [...new Set([...out.keys(), ...inn.keys()])];
   const parts = G.nodes.filter((n) => n.kind !== 'external' && SC.deps.able('n:' + n.id));
   const top = (fn) => files.filter((p) => fn(p) > 0).sort((a, b) => fn(b) - fn(a) || a.localeCompare(b)).slice(0, 8);
+  const counts = (p) => (SC.deps.usesLeft() ? `uses ${fanOut(p)} · used by ${fanIn(p)}` : `used by ${fanIn(p)} · uses ${fanOut(p)}`);
   const loopRow = (lp, i) => row('data-loop', String(i), lp.path.map(nameOf).join(' → '), loopName(lp), SC.plural(lp.files.length, 'file'), ' loop');
 
   function renderList(q = '') {
@@ -61,13 +68,15 @@
       const ps = parts.filter((n) => hit(`${n.label} ${n.id}`.toLowerCase())).slice(0, 6);
       const ls = loops.map((lp, i) => [lp, i]).filter(([lp]) => hit(lp.files.join(' ').toLowerCase() + ' loop circular'));
       if (ps.length) html += '<div class="dp-g">Parts</div>' + ps.map((n) => row('data-dp', 'n:' + n.id, n.label, n.summary || n.id, '')).join('');
-      if (fs.length) html += '<div class="dp-g">Files</div>' + fs.map((p) => row('data-dp', 'f:' + p, nameOf(p), p, `used by ${fanIn(p)} · uses ${fanOut(p)}`)).join('');
+      if (fs.length) html += '<div class="dp-g">Files</div>' + fs.map((p) => row('data-dp', 'f:' + p, nameOf(p), p, counts(p))).join('');
       if (ls.length) html += '<div class="dp-g">Import loops</div>' + ls.slice(0, 10).map(([lp, i]) => loopRow(lp, i)).join('');
+      html += row('data-all', q, 'Search all files', `“${q}” in the list of every file`, '');
       if (!html) html = `<div class="dp-none">Nothing matches “${h(q)}”.</div>`;
     } else {
       const sel = SC.state.selected;
       const cur = typeof sel === 'string' ? (sel.startsWith('m:') ? 'f:' + sel.slice(2) : sel) : null;
       if (cur && SC.deps.able(cur) && SC.state.container !== 'dep:' + cur) html += row('data-dp', cur, `Dependencies of ${SC.info(cur).name}`, 'the selected card', 'D');
+      html += row('data-all', '', 'All files', 'Every file in the project: search, filter and sort', SC.plural(G.files.length, 'file'));
       html += `<div class="dp-g">Import loops${loops.length ? `<b>${loops.length}</b>` : ''}</div>`;
       html += loops.length
         ? loops.slice(0, 12).map(loopRow).join('') + (loops.length > 12 ? `<div class="dp-none">…and ${loops.length - 12} more: type to find them.</div>` : '')
@@ -79,6 +88,7 @@
     list.innerHTML = html;
     list.querySelectorAll('[data-dp]').forEach((b) => b.onclick = (ev) => { ev.stopPropagation(); go(b.dataset.dp); });
     list.querySelectorAll('[data-loop]').forEach((b) => b.onclick = (ev) => { ev.stopPropagation(); goLoop(+b.dataset.loop); });
+    list.querySelectorAll('[data-all]').forEach((b) => b.onclick = (ev) => { ev.stopPropagation(); closeMenu(); allFiles(b.dataset.all); });
     list.querySelector('.dp-r')?.classList.add('on');
   }
   function renderMenu() {
@@ -129,7 +139,8 @@
     if (typeof id !== 'string' || !SC.deps.able(id)) return null;
     if (SC.state.container === 'dep:' + id) return null; // already looking at it
     const lpIndex = id.startsWith('f:') ? SC.deps.links().loopOf.get(id.slice(2)) : undefined;
-    const sub = id.startsWith('f:') ? `Used by ${SC.plural(fanIn(id.slice(2)), 'file')} · uses ${SC.plural(fanOut(id.slice(2)), 'file')}, and further out` : 'What uses the files in this part, and what they use';
+    const p = id.slice(2);
+    const sub = id.startsWith('f:') ? (SC.deps.usesLeft() ? `Uses ${SC.plural(fanOut(p), 'file')} · used by ${SC.plural(fanIn(p), 'file')}, and further out` : `Used by ${SC.plural(fanIn(p), 'file')} · uses ${SC.plural(fanOut(p), 'file')}, and further out`) : SC.deps.usesLeft() ? 'What the files in this part use, and what uses them' : 'What uses the files in this part, and what they use';
     let html = `<div class="sec"><h3>Dependencies</h3><div class="list"><a class="row" data-dp-open><span class="dot" style="background:var(--n-deps)"></span><span class="rt"><div class="rn">Show dependencies</div><div class="rd">${h(sub)}</div></span><span class="rc">D</span></a>`;
     if (lpIndex !== undefined) html += `<a class="row" data-dp-loop><span class="dot" style="background:var(--sev-high)"></span><span class="rt"><div class="rn">In an import loop</div><div class="rd">${h(loopName(loops[lpIndex]))}</div></span></a>`;
     html += '</div></div>';
@@ -142,9 +153,12 @@
     };
   });
   SC.addPanelSection('overview', () => ({
-    html: `<div class="sec"><h3>Dependencies${loops.length ? ` <span class="c" style="color:var(--sev-high)">${SC.plural(loops.length, 'loop')}</span>` : ''}</h3><div class="list"><a class="row" data-dp-home><span class="dot" style="background:var(--n-deps)"></span><span class="rt"><div class="rn">What depends on what</div><div class="rd">Pick a file, component or part to see what uses it and what it uses${loops.length ? `, and untangle ${loops.length === 1 ? 'the loop' : `the ${loops.length} loops`} of files that import each other` : ''}.</div></span></a></div></div>`,
-    bind: (box) => box?.querySelector('[data-dp-home]')?.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); openMenu(); }),
+    html: `<div class="sec"><h3>Dependencies${loops.length ? ` <span class="c" style="color:var(--sev-high)">${SC.plural(loops.length, 'loop')}</span>` : ''}</h3><div class="list"><a class="row" data-dp-all><span class="dot" style="background:var(--n-file)"></span><span class="rt"><div class="rn">All files</div><div class="rd">Every file in the project, searchable and sortable</div></span><span class="rc">${G.files.length}</span></a><a class="row" data-dp-home><span class="dot" style="background:var(--n-deps)"></span><span class="rt"><div class="rn">What depends on what</div><div class="rd">Pick a file, component or part to see what uses it and what it uses${loops.length ? `, and untangle ${loops.length === 1 ? 'the loop' : `the ${loops.length} loops`} of files that import each other` : ''}.</div></span></a></div></div>`,
+    bind: (box) => {
+      box?.querySelector('[data-dp-home]')?.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); openMenu(); });
+      box?.querySelector('[data-dp-all]')?.addEventListener('click', (ev) => { ev.preventDefault(); ev.stopPropagation(); allFiles(); });
+    },
   }));
 
-  window.FloorplanDeps = { open: (id) => SC.deps.open(String(id)), openLoop: (i) => SC.go('dep:loop:' + i), openMenu, loops };
+  window.FloorplanDeps = { open: (id) => SC.deps.open(String(id)), openLoop: (i) => SC.go('dep:loop:' + i), openMenu, allFiles, loops };
 })();

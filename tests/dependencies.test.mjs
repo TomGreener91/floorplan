@@ -191,6 +191,15 @@ test('the map has the Dependencies view, and Ask and the notes mention the new l
     assert.match(html, /id: 'dep:loop:' \+ i/);
     assert.match(html, /pick\(sActive, ev\.shiftKey\)/);
     assert.match(html, /<span class="kbd">⇧↵<\/span> dependencies/);
+    // in the Dependencies view what a file uses is on the left by default, and Swap sides puts "used by" there
+    assert.match(html, /usesLeft: store\.get\('dep-side', 'uses-left'\) !== 'usedby-left'/);
+    assert.match(html, /data-dpswap/);
+    assert.match(html, /sources: \[e\.b\], targets: \[e\.a\]/);
+    // All files: a searchable, sortable list of every file, as a view of its own
+    assert.match(html, /if \(state\.container === 'list:files'\) \{ renderListView\(opts\); return; \}/);
+    assert.match(html, /function fileKind\(f\)/);
+    assert.match(html, /<div id="listview" hidden><\/div>/);
+    assert.match(html, /allFiles: \(\) => go\('list:files'\)/);
     // the right-click menu and the D key
     assert.match(html, /label: 'Show dependencies', icon: 'deps'/);
     assert.match(html, /ev\.key === 'd' \|\| ev\.key === 'D'/);

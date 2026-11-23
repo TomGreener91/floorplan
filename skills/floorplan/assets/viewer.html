@@ -54,7 +54,7 @@
   --ease: cubic-bezier(.16, 1, .3, 1); --ease-io: cubic-bezier(.65, 0, .35, 1);
   --shadow-card: 0 1px 0 rgba(var(--ink), .035) inset, 0 12px 32px -20px rgba(0, 0, 0, .95);
   --shadow-float: 0 0 0 1px rgba(var(--ink), .05), 0 24px 64px -24px rgba(0, 0, 0, .9);
-  --k-loop: var(--sev-high); --n-deps: var(--sev-high);
+  --k-loop: var(--sev-high); --n-deps: var(--sev-high); --n-list: var(--n-file);
   --k-import: #6e6e6e; --k-http: #7aa7ff; --k-call: #b49cff; --k-rpc: #8f9bff; --k-event: #f19ac7; --k-queue: #f0c36b; --k-data: #63d2b8; --k-config: #6b7280; --k-contains: #4a4a4a;
   --n-ui: #7cc4ff; --n-service: #b49cff; --n-worker: #f0c36b; --n-library: #6fd7a8; --n-feature: #8fb4ff; --n-data: #63d2b8; --n-config: #a3a3a3;
   --n-test: #f19ac7; --n-script: #f5a66b; --n-infra: #f28b8b; --n-external: #e3a6f0; --n-misc: #8b8b8b; --n-dir: #a3a3a3; --n-file: #a3a3a3;
@@ -83,7 +83,7 @@
   --shadow-float: 0 0 0 1px rgba(0, 0, 0, .1), 0 20px 48px -22px rgba(0, 0, 0, .4);
   --shadow-lift: 0 16px 32px -18px rgba(0, 0, 0, .4);
   --shadow-deep: 0 20px 48px -22px rgba(0, 0, 0, .4);
-  --k-loop: var(--sev-high); --n-deps: var(--sev-high);
+  --k-loop: var(--sev-high); --n-deps: var(--sev-high); --n-list: var(--n-file);
   --k-import: #50555c; --k-http: #1f5fd6; --k-call: #6a45d6; --k-rpc: #4450cf; --k-event: #c43a85; --k-queue: #a8710c; --k-data: #0b7f6b; --k-config: #4f5661; --k-contains: #8d8d8d;
   --n-ui: #1f7ac4; --n-service: #7a5ad8; --n-worker: #a8710c; --n-library: #1a8a5b; --n-feature: #3b6fd1; --n-data: #0f8a76; --n-config: #666666;
   --n-test: #c43c86; --n-script: #c06a1d; --n-infra: #c94a4a; --n-external: #a24dbb; --n-misc: #666666; --n-dir: #666666; --n-file: #666666;
@@ -247,7 +247,9 @@ svg.dim .node:not(.hl) .card > * { opacity: .28; transition: opacity .3s var(--e
 #context .dpc { pointer-events: auto; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 #context .dpc .seg { display: inline-flex; background: rgba(var(--ink), .06); border-radius: 12px; padding: 3px; }
 #context .dpc .seg span { color: var(--text-3); font-size: 12px; padding: 0 6px 0 8px; align-self: center; }
-#context .dpc button { border: 0; background: none; color: var(--text-2); height: 28px; min-width: 30px; padding: 0 9px; border-radius: 9px; cursor: pointer; font: inherit; font-size: 12.5px; }
+#context .dpc button { border: 0; background: none; color: var(--text-2); height: 28px; min-width: 30px; padding: 0 9px; border-radius: 9px; cursor: pointer; font: inherit; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px; }
+#context .dpc button .i { width: 14px; height: 14px; }
+#context .dpc button:hover { color: var(--text); }
 #context .dpc button.on { background: var(--raise-2); color: var(--text); }
 #results .r .rdep { flex: none; border: 0; background: rgba(var(--ink), .06); color: var(--text-2); border-radius: 9px; height: 26px; padding: 0 8px; display: none; align-items: center; gap: 5px; font: inherit; font-size: 12px; cursor: pointer; }
 #results .r.active .rdep, #results .r:hover .rdep { display: inline-flex; }
@@ -335,6 +337,45 @@ svg.dim .edge:not(.hl) { opacity: .1; }
 #loading { position: absolute; left: calc((100% - var(--pw)) / 2); top: 50%; transform: translate(-50%, -50%); padding: 10px 16px; border-radius: 999px; font-size: 12.5px; color: var(--text-2); opacity: 0; transition: opacity .3s var(--ease); pointer-events: none; }
 #loading.on { opacity: 1; }
 #empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--text-3); pointer-events: none; }
+/* All files: a searchable, sortable list in the map area (the map's other views are drawn; this one is a table) */
+#listview { position: absolute; top: 200px; left: 24px; right: calc(var(--pw) + 8px); bottom: 118px; overflow: auto; border-radius: var(--r-panel); background: var(--surface); box-shadow: var(--shadow-card); border: 1px solid var(--hair); overscroll-behavior: contain; }
+body.no-panel #listview { right: 24px; }
+#listview .lv-bar { position: sticky; top: 0; z-index: 2; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 12px 14px; background: var(--surface); border-bottom: 1px solid var(--hair); }
+#listview .lv-q { flex: 1 1 240px; min-width: 180px; height: 34px; border: 0; border-radius: 12px; padding: 0 12px; background: rgba(var(--ink), .06); color: var(--text); outline: none; font: inherit; }
+#listview .lv-q:focus { background: rgba(var(--ink), .08); box-shadow: 0 0 0 1px rgba(var(--ink), .14); }
+#listview select { height: 34px; border: 0; border-radius: 12px; padding: 0 10px; background: rgba(var(--ink), .06); color: var(--text); font: inherit; font-size: 12.5px; max-width: 220px; }
+#listview .lv-t { border: 0; background: rgba(var(--ink), .06); color: var(--text-2); height: 34px; padding: 0 12px; border-radius: 12px; cursor: pointer; font: inherit; font-size: 12.5px; }
+#listview .lv-t.on { background: var(--on); color: var(--on-text); }
+#listview .lv-n { margin-left: auto; font-size: 12px; color: var(--text-3); white-space: nowrap; }
+#listview table { width: 100%; border-collapse: collapse; font-size: 13px; }
+#listview thead th { position: sticky; top: 59px; z-index: 1; background: var(--surface); text-align: left; font-weight: 500; font-size: 12px; color: var(--text-3); padding: 8px 12px; border-bottom: 1px solid var(--hair); white-space: nowrap; cursor: pointer; user-select: none; }
+#listview thead th:hover { color: var(--text); }
+#listview thead th.on { color: var(--text); }
+#listview thead th.num, #listview td.num { text-align: right; }
+#listview tbody tr { cursor: pointer; border-bottom: 1px solid var(--hair); }
+#listview tbody tr:hover { background: var(--surface-hover); }
+#listview tbody tr.sel { background: rgba(var(--ink), .07); box-shadow: inset 3px 0 0 var(--ring); }
+#listview td { padding: 9px 12px; vertical-align: top; }
+#listview td.nm { min-width: 220px; max-width: 460px; }
+#listview td.nm b { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+#listview td.nm .ico { width: 20px; height: 20px; border-radius: 7px; flex: none; display: grid; place-items: center; background: color-mix(in srgb, var(--c) 16%, transparent); color: var(--c); }
+#listview td.nm .ico svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+#listview td.nm .p { font-family: var(--mono); font-size: 11.5px; color: var(--text-3); margin: 2px 0 0 28px; word-break: break-all; }
+#listview td.nm .d { font-size: 12px; color: var(--text-3); margin: 3px 0 0 28px; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; }
+#listview td.lk, #listview td.lpt { color: var(--text-2); white-space: nowrap; font-size: 13px; }
+#listview td.num { font-variant-numeric: tabular-nums; color: var(--text-2); white-space: nowrap; }
+#listview td.num.zero { color: var(--text-4); }
+#listview .lv-loop { display: inline-block; font-size: 11px; font-weight: 600; color: var(--sev-high); background: color-mix(in srgb, var(--sev-high) 13%, transparent); padding: 3px 7px; border-radius: 999px; white-space: nowrap; }
+#listview .lv-h { display: inline-flex; align-items: center; gap: 5px; }
+#listview .lv-h i { width: 7px; height: 7px; border-radius: 50%; }
+#listview td.act { white-space: nowrap; text-align: right; width: 1%; }
+#listview td.act button { border: 0; background: rgba(var(--ink), .06); color: var(--text-2); height: 26px; padding: 0 9px; border-radius: 9px; font: inherit; font-size: 12px; cursor: pointer; opacity: 0; display: inline-flex; align-items: center; gap: 5px; }
+#listview td.act button .i { width: 13px; height: 13px; }
+#listview tr:hover td.act button, #listview tr.sel td.act button { opacity: 1; }
+#listview td.act button:hover { background: rgba(var(--ink), .12); color: var(--text); }
+#listview .lv-more { display: block; margin: 14px auto 18px; border: 0; background: rgba(var(--ink), .06); color: var(--text-2); border-radius: 12px; padding: 8px 14px; cursor: pointer; font: inherit; font-size: 12.5px; }
+#listview .lv-none { padding: 40px 16px; text-align: center; color: var(--text-3); }
+@media (max-width: 700px) { #listview { left: 12px; right: 12px; bottom: 132px; } #listview td.lpt, #listview th.lpt, #listview td.lk, #listview th.lk { display: none; } }
 
 /* ---------- inspector (floating) ---------- */
 #panel { position: fixed; top: calc(var(--hh, 64px) + 4px); right: 16px; bottom: 16px; width: var(--panel-w); border-radius: var(--r-panel); overflow: auto; z-index: 5;
@@ -603,6 +644,7 @@ html.wk svg.dim .node:not(.hl) foreignObject { opacity: .28; }
   <div id="tooltip" class="glass" hidden></div>
   <div id="loading" class="glass">Laying out…</div>
   <div id="empty" hidden></div>
+  <div id="listview" hidden></div>
 </div>
 <header>
   <div class="hl">
@@ -792,6 +834,8 @@ const P = {
   x: '<path d="M18 6 6 18M6 6l12 12"/>',
   left: '<path d="m15 18-6-6 6-6"/>',
   right: '<path d="m9 18 6-6-6-6"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+  swap: '<path d="M7 4 3 8l4 4M3 8h14M17 20l4-4-4-4M21 16H7"/>',
   deps: '<circle cx="6" cy="6" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M7.6 8 11 15.6M16.4 8 13 15.6"/>',
 };
 const icon = (k) => `<svg viewBox="0 0 24 24">${P[k] || P.file}</svg>`;
@@ -870,6 +914,7 @@ function info(item) {
   if (item === 'root') return { type: 'root', name: G.project.name, desc: G.project.summary || '', kind: 'root' };
   if (item === 'q:answer') return { type: 'answer', name: state.answer?.title || 'Answer', desc: state.answer?.question || '', kind: 'answer' };
   if (item.startsWith('dep:')) return depInfo(item);
+  if (item === 'list:files') return { type: 'list', name: 'All files', desc: `Every file on the map (${fmt(G.files.length)})`, kind: 'list' };
   const t = item.slice(0, 2);
   if (t === 'n:') { const n = nodes.get(item.slice(2)); return { type: 'node', name: n.label, desc: n.summary, kind: n.kind, n }; }
   if (t === 'd:') { const d = dirs.get(item); return { type: 'dir', name: humanize(d.path.split('/').pop()), desc: `${plural(d.files.length, 'file')} in ${d.path}/`, kind: 'dir', d, path: d.path + '/' }; }
@@ -964,6 +1009,185 @@ const answerNote = (item) => {
   return i < 0 || !state.answer.items[i].note ? null : { n: i + 1, text: state.answer.items[i].note };
 };
 
+// ======================= all files =======================
+// Every file on the map as a list: search, filter by kind and part, sort by any column, then pick a file to
+// see its details, its dependencies or its place on the map. A view of its own (list:files), shown in the
+// map's area in place of the drawing.
+const LIST = {
+  q: '', kind: 'all', part: 'all', loop: false, unused: false, shown: 300,
+  sort: (() => { const v = store.get('list-sort', null); return Array.isArray(v) && v.length === 2 ? v : ['name', 1]; })(),
+};
+const LIST_TEST = /(^|\/)(__tests__|__mocks__|tests?|spec|e2e|cypress)\/|\.(test|spec|stories|e2e)\.[a-z]+$/i;
+const screenFiles = new Set((G.screens || []).map((x) => x.file));
+/** What a file is, in a word, from its path: tests, pages, components, composables, stores, types, styles… */
+function fileKind(f) {
+  const p = f.p, b = p.split('/').pop();
+  if (LIST_TEST.test(p) || nodes.get(f.n)?.kind === 'test') return 'Test';
+  if (/\.d\.[cm]?ts$/.test(p) || /(^|\/)types?\//.test(p)) return 'Types';
+  if (/\.(css|scss|sass|less|styl|pcss)$/.test(p)) return 'Style';
+  const ui = /\.(vue|svelte|tsx|jsx|astro)$/.test(p);
+  if (screenFiles.has(p) || (ui && /(^|\/)(pages|views|screens|routes|layouts)\//.test(p))) return 'Page';
+  if (/(^|\/)(composables|hooks)\//.test(p) || /^use[A-Z]/.test(b)) return 'Composable';
+  if (/(^|\/)stores?\//.test(p) || /store\.[cm]?[jt]s$/i.test(b)) return 'Store';
+  if (ui) return 'Component';
+  if (/(^|\/)(services?|api|clients?)\//.test(p)) return 'Service';
+  if (/(^|\/)(utils?|helpers?|lib)\//.test(p)) return 'Utility';
+  if (nodes.get(f.n)?.kind === 'config' || /(^|\/)[^/]*\.config\.[a-z]+$|(^|\/)config\//.test(p)) return 'Config';
+  return 'Script';
+}
+const listRows = (() => {
+  let rows = null;
+  return () => {
+    if (rows) return rows;
+    const { out, inn, loopOf } = depLinks();
+    const issues = new Map();
+    const SEV = { high: 0, medium: 1, low: 2 };
+    for (const i of G.health?.issues || []) for (const id of i.items || []) {
+      if (!id.startsWith('f:')) continue;
+      const cur = issues.get(id.slice(2));
+      issues.set(id.slice(2), { n: (cur?.n || 0) + 1, sev: !cur || SEV[i.severity] < SEV[cur.sev] ? i.severity : cur.sev });
+    }
+    rows = G.files.map((f) => ({
+      f, p: f.p, name: f.name || f.p.split('/').pop(), kind: fileKind(f), part: nodes.get(f.n)?.label || 'Other', partId: f.n,
+      uses: out.get(f.p)?.size || 0, usedBy: inn.get(f.p)?.size || 0, loc: f.loc || 0, loop: loopOf.has(f.p), health: issues.get(f.p) || null,
+      text: `${f.name || ''} ${f.p} ${f.d || ''}`.toLowerCase(),
+    }));
+    return rows;
+  };
+})();
+function listFiltered() {
+  const words = LIST.q.toLowerCase().split(/\s+/).filter(Boolean);
+  const [key, dir] = LIST.sort;
+  const val = (r) => (key === 'health' ? (r.health ? 3 - ({ high: 0, medium: 1, low: 2 })[r.health.sev] + r.health.n / 1000 : 0) : r[key]);
+  return listRows()
+    .filter((r) => (LIST.kind === 'all' || r.kind === LIST.kind) && (LIST.part === 'all' || r.partId === LIST.part) && (!LIST.loop || r.loop) && (!LIST.unused || (r.usedBy === 0 && r.kind !== 'Test' && r.kind !== 'Page')) && words.every((w) => r.text.includes(w)))
+    .sort((a, b) => {
+      const x = val(a), y = val(b);
+      const c = typeof x === 'string' ? x.localeCompare(y) : x - y;
+      return c * dir || a.p.localeCompare(b.p);
+    });
+}
+function renderListView(opts = {}) {
+  const lv = $('#listview');
+  vp.innerHTML = '';
+  state.view = { container: 'list:files', visible: [], connectors: [], edges: [], hidden: 0 };
+  state.layout = { children: [], edges: [], width: 0, height: 0 };
+  state.chipEls = new Map(); state.edgeEls = new Map();
+  $('#loading').classList.remove('on');
+  $('#empty').hidden = true;
+  renderContext(); renderCrumbs(); renderLegend(state.view);
+  const rows = listRows();
+  const kinds = [...new Set(rows.map((r) => r.kind))].sort();
+  const parts = [...new Map(rows.map((r) => [r.partId, r.part])).entries()].sort((a, b) => a[1].localeCompare(b[1]));
+  const usesFirst = DEP.usesLeft;
+  const cols = [['name', 'Name', ''], ['kind', 'Kind', 'lk'], ['part', 'Part', 'lpt'], ...(usesFirst ? [['uses', 'Uses', 'num'], ['usedBy', 'Used by', 'num']] : [['usedBy', 'Used by', 'num'], ['uses', 'Uses', 'num']]), ['loc', 'Lines', 'num'], ['health', 'Health', '']];
+  lv.innerHTML = `<div class="lv-bar">
+      <input class="lv-q" placeholder="Search files by name, path or description…" spellcheck="false" autocomplete="off" value="${h(LIST.q)}" aria-label="Search files">
+      <select data-lv="kind" aria-label="Kind"><option value="all">All kinds</option>${kinds.map((k) => `<option value="${h(k)}"${LIST.kind === k ? ' selected' : ''}>${h(k)}s</option>`).join('')}</select>
+      <select data-lv="part" aria-label="Part"><option value="all">All parts</option>${parts.map(([id, l]) => `<option value="${hk(id)}"${LIST.part === id ? ' selected' : ''}>${h(l)}</option>`).join('')}</select>
+      <button class="lv-t${LIST.loop ? ' on' : ''}" data-lvt="loop" title="Files that import each other in a loop">In a loop</button>
+      <button class="lv-t${LIST.unused ? ' on' : ''}" data-lvt="unused" title="Files nothing imports (pages and tests aside)">Used by nothing</button>
+      <span class="lv-n"></span>
+    </div>
+    <table><thead><tr>${cols.map(([k, t, c]) => `<th class="${c}${LIST.sort[0] === k ? ' on' : ''}" data-sort="${k}">${t}${LIST.sort[0] === k ? (LIST.sort[1] > 0 ? ' ↑' : ' ↓') : ''}</th>`).join('')}<th></th></tr></thead><tbody></tbody></table>`;
+  const input = lv.querySelector('.lv-q');
+  input.oninput = () => { LIST.q = input.value; LIST.shown = 300; listBody(); };
+  input.onkeydown = (ev) => { if (ev.key === 'Escape') { ev.stopPropagation(); if (input.value) { input.value = ''; LIST.q = ''; listBody(); } else input.blur(); } };
+  lv.querySelectorAll('select[data-lv]').forEach((sel) => sel.onchange = () => { LIST[sel.dataset.lv] = sel.value; LIST.shown = 300; listBody(); });
+  lv.querySelectorAll('[data-lvt]').forEach((b) => b.onclick = () => { LIST[b.dataset.lvt] = !LIST[b.dataset.lvt]; b.classList.toggle('on', LIST[b.dataset.lvt]); LIST.shown = 300; listBody(); });
+  lv.querySelectorAll('th[data-sort]').forEach((th) => th.onclick = () => {
+    const k = th.dataset.sort;
+    LIST.sort = LIST.sort[0] === k ? [k, -LIST.sort[1]] : [k, ['name', 'kind', 'part'].includes(k) ? 1 : -1];
+    store.set('list-sort', LIST.sort);
+    renderListView({ keepScroll: true });
+  });
+  lv.hidden = false;
+  placeListView();
+  listBody();
+  if (!opts.keepScroll) lv.scrollTop = 0;
+  applySelection();
+  if (opts.after) opts.after();
+}
+function listBody() {
+  const lv = $('#listview');
+  const all = listFiltered();
+  const shown = all.slice(0, LIST.shown);
+  const usesFirst = DEP.usesLeft;
+  const num = (n) => `<td class="num${n ? '' : ' zero'}">${fmt(n)}</td>`;
+  const sevVar = { high: 'var(--sev-high)', medium: 'var(--sev-medium)', low: 'var(--sev-low)' };
+  lv.querySelector('tbody').innerHTML = shown.map((r) => {
+    const i = info('f:' + r.p);
+    const dep = depAble('f:' + r.p) ? `<button data-lvdep="${hk(r.p)}" title="Show dependencies">${iconI('deps')}Dependencies</button> ` : '';
+    return `<tr data-f="${hk(r.p)}"${state.selected === 'f:' + r.p ? ' class="sel"' : ''}>
+      <td class="nm"><b><span class="ico" style="--c:var(--n-${nodes.get(r.partId)?.kind || 'file'})">${icon('file')}</span>${h(r.name)}${r.loop ? ' <span class="lv-loop">Import loop</span>' : ''}</b><div class="p">${h(r.p)}</div>${i.desc ? `<div class="d">${h(i.desc)}</div>` : ''}</td>
+      <td class="lk">${h(r.kind)}</td><td class="lpt">${h(r.part)}</td>
+      ${usesFirst ? num(r.uses) + num(r.usedBy) : num(r.usedBy) + num(r.uses)}${num(r.loc)}
+      <td>${r.health ? `<span class="lv-h"><i style="background:${sevVar[r.health.sev]}"></i>${plural(r.health.n, 'issue')}</span>` : ''}</td>
+      <td class="act">${dep}<button data-lvmap="${hk(r.p)}" title="Show on the map">${iconI('search')}Map</button></td></tr>`;
+  }).join('') || '';
+  lv.querySelector('.lv-none')?.remove();
+  lv.querySelector('.lv-more')?.remove();
+  if (!all.length) lv.insertAdjacentHTML('beforeend', `<div class="lv-none">No file matches${LIST.q ? ` “${h(LIST.q)}”` : ''} with these filters.</div>`);
+  else if (all.length > shown.length) lv.insertAdjacentHTML('beforeend', `<button class="lv-more">Show ${fmt(Math.min(300, all.length - shown.length))} more (${fmt(all.length - shown.length)} not shown)</button>`);
+  lv.querySelector('.lv-more')?.addEventListener('click', () => { LIST.shown += 300; listBody(); });
+  lv.querySelector('.lv-n').textContent = all.length === G.files.length ? plural(all.length, 'file') : `${fmt(all.length)} of ${plural(G.files.length, 'file')}`;
+  lv.querySelectorAll('tr[data-f]').forEach((tr) => {
+    tr.onclick = (ev) => { if (ev.target.closest('button')) return; select('f:' + tr.dataset.f); };
+    tr.ondblclick = (ev) => { if (ev.target.closest('button')) return; open('f:' + tr.dataset.f); };
+  });
+  lv.querySelectorAll('[data-lvdep]').forEach((b) => b.onclick = (ev) => { ev.stopPropagation(); openDeps('f:' + b.dataset.lvdep); });
+  lv.querySelectorAll('[data-lvmap]').forEach((b) => b.onclick = (ev) => { ev.stopPropagation(); reveal('f:' + b.dataset.lvmap); });
+}
+/** The list starts below the view's title, whatever height that is. */
+function placeListView() {
+  const lv = $('#listview');
+  if (lv.hidden) return;
+  lv.style.top = Math.round($('#context').getBoundingClientRect().bottom + 16) + 'px';
+  // and ends above the Ask bar (and its notes), when there is one
+  const ask = $('#ask'), top = ask && !ask.hidden && ask.offsetParent ? ask.getBoundingClientRect().top : 0;
+  lv.style.bottom = top ? Math.max(16, Math.round(innerHeight - top + 12)) + 'px' : '24px';
+}
+function listScrollTo(id) { $('#listview').querySelector(`tr[data-f="${CSS.escape(id.slice(2))}"]`)?.scrollIntoView({ block: 'nearest' }); }
+window.addEventListener('resize', placeListView);
+// arrow keys move through the list
+window.addEventListener('keydown', (ev) => {
+  if (state.container !== 'list:files' || pal.classList.contains('open') || /^(INPUT|SELECT|TEXTAREA)$/.test(ev.target.tagName)) return;
+  if (ev.key !== 'ArrowDown' && ev.key !== 'ArrowUp') return;
+  const rows = [...$('#listview').querySelectorAll('tr[data-f]')];
+  if (!rows.length) return;
+  ev.preventDefault();
+  const cur = rows.findIndex((r) => 'f:' + r.dataset.f === state.selected);
+  const next = rows[clamp(cur + (ev.key === 'ArrowDown' ? 1 : -1), 0, rows.length - 1)];
+  select('f:' + next.dataset.f); next.scrollIntoView({ block: 'nearest' });
+});
+function listPanel() {
+  const rows = listRows();
+  const byKind = new Map();
+  for (const r of rows) byKind.set(r.kind, (byKind.get(r.kind) || 0) + 1);
+  const loops = rows.filter((r) => r.loop).length, unused = rows.filter((r) => r.usedBy === 0 && r.kind !== 'Test' && r.kind !== 'Page').length;
+  const lines = rows.reduce((t, r) => t + r.loc, 0);
+  const kindRows = [...byKind].sort((a, b) => b[1] - a[1]).map(([k, n]) => `<a class="row" data-lvkind="${h(k)}"><span class="dot" style="background:var(--n-file)"></span><span class="rt"><div class="rn">${h(k)}s</div></span><span class="rc">${fmt(n)}</span></a>`).join('');
+  return `<div class="sec"><div class="ph"><span class="ico" style="--c:var(--n-list)">${icon('list')}</span><span class="kindlabel">Files</span></div><h2 class="pt">All files</h2>
+    <p class="pd">${plural(rows.length, 'file')} and ${fmt(lines)} lines. Click a file for its details; double-click opens its dependencies.</p>
+    <div class="actions"><button class="btn soft" data-goroot>Back to map</button></div></div>
+    <div class="sec"><h3>By kind</h3><div class="list">${kindRows}</div></div>
+    <div class="sec"><h3>Worth a look</h3><div class="list">
+      <a class="row" data-lvflag="loop"><span class="dot" style="background:var(--sev-high)"></span><span class="rt"><div class="rn">In an import loop</div><div class="rd">Files that import each other in a circle</div></span><span class="rc">${fmt(loops)}</span></a>
+      <a class="row" data-lvflag="unused"><span class="dot" style="background:var(--sev-low)"></span><span class="rt"><div class="rn">Used by nothing</div><div class="rd">No file imports them (pages and tests aside)</div></span><span class="rc">${fmt(unused)}</span></a>
+    </div></div>`;
+}
+document.addEventListener('click', (ev) => {
+  if (state.container !== 'list:files') return;
+  const k = ev.target.closest?.('#panel [data-lvkind]');
+  const fl = ev.target.closest?.('#panel [data-lvflag]');
+  if (!k && !fl) return;
+  ev.preventDefault();
+  if (k) LIST.kind = k.dataset.lvkind;
+  if (fl) LIST[fl.dataset.lvflag] = true;
+  LIST.shown = 300;
+  renderListView();
+});
+
 // ======================= dependencies =======================
 // One file, or a part, and what depends on what around it, drawn like the rest of the map: what uses it in the
 // columns on the left, what it uses on the right, one column per step out, with loops of files that import each
@@ -973,6 +1197,9 @@ const DEP = {
   data: null, linkObj: null, partFiles: new Map(),
   depth: clamp(+store.get('dep-depth', 2) || 2, 1, 4),
   dir: ['both', 'in', 'out'].includes(store.get('dep-dir', 'both')) ? store.get('dep-dir', 'both') : 'both',
+  // which side what a file uses goes on: the left by default (what it's built from → the file → what's built
+  // on it); Swap sides puts "used by" on the left, like the map's own part views
+  usesLeft: store.get('dep-side', 'uses-left') !== 'usedby-left',
 };
 const DEP_MAX = 160; // cards on one board; the nearest steps win
 // its own query instance: the search index needs this before the page's Q exists
@@ -1025,12 +1252,16 @@ function buildDepsView(container) {
   const focus = depFocus(container);
   const col = new Map(); // file → column: negative uses it, positive it uses
   const labels = new Map();
-  const step = (k) => (Math.abs(k) === 1 ? (k < 0 ? 'Used by' : 'Uses') : `${k < 0 ? 'Used by' : 'Uses'}, ${Math.abs(k)} steps away`);
+  // sUse: the direction "uses" goes in, -1 (left) or +1 (right); "used by" goes the other way
+  const sUse = DEP.usesLeft ? -1 : 1;
+  const sideName = (k) => ((k < 0) === DEP.usesLeft ? 'Uses' : 'Used by');
+  const step = (k) => (Math.abs(k) === 1 ? sideName(k) : `${sideName(k)}, ${Math.abs(k)} steps away`);
   if (focus.startsWith('loop:')) {
+    // each file imports the next, which sits on the "uses" side of it
     const lp = loops[+focus.slice(5)];
-    lp.path.forEach((p, i) => { col.set(p, i); labels.set(i, i === 0 ? 'Starts here' : i === lp.path.length - 1 ? 'Imports the first again' : 'Imports the next'); });
+    lp.path.forEach((p, i) => { col.set(p, sUse * i); labels.set(sUse * i, i === 0 ? 'Starts here' : i === lp.path.length - 1 ? 'Imports the first again' : 'Imports the next'); });
     const extra = lp.files.filter((p) => !lp.path.includes(p));
-    if (extra.length) { extra.forEach((p) => col.set(p, lp.path.length)); labels.set(lp.path.length, 'Also in this loop'); }
+    if (extra.length) { extra.forEach((p) => col.set(p, sUse * lp.path.length)); labels.set(sUse * lp.path.length, 'Also in this loop'); }
   } else {
     const center = focus.startsWith('f:') ? [focus.slice(2)] : depFilesOf(focus.slice(2));
     const inside = new Set(center);
@@ -1046,8 +1277,8 @@ function buildDepsView(container) {
       }
     };
     // a file on both sides is in a loop with this one: it's shown once, on the "uses" side
-    if (DEP.dir !== 'in') walk(out, 1);
-    if (DEP.dir !== 'out') walk(inn, -1);
+    if (DEP.dir !== 'in') walk(out, sUse);
+    if (DEP.dir !== 'out') walk(inn, -sUse);
     // a part shows only its files that connect outside it
     if (focus.startsWith('n:')) for (const p of center) if (![...(out.get(p) || []), ...(inn.get(p) || [])].some((q) => col.has(q) && !inside.has(q))) col.delete(p);
   }
@@ -1062,18 +1293,21 @@ function buildDepsView(container) {
   for (const a of kept) for (const b of out.get(a) || []) {
     if (!keep.has(b)) continue;
     const loop = loopOf.has(a) && loopOf.get(a) === loopOf.get(b);
-    // only lines that move one column to the right, plus loops: everything else would be noise
-    if (!loop && col.get(b) !== col.get(a) + 1) continue;
+    // only lines one step out (the used file a column further toward "uses"), plus loops: anything else is noise
+    if (!loop && col.get(b) !== col.get(a) + sUse) continue;
     edges.push({ id: 'e' + edges.length, a: 'f:' + a, b: 'f:' + b, k: loop ? 'loop' : 'import', w: 1, links: [depLinkObj(a, b)] });
   }
   const visible = kept.slice().sort((a, b) => col.get(a) - col.get(b) || partOf(a).localeCompare(partOf(b)) || (files.get(a)?.name || a).localeCompare(files.get(b)?.name || b)).map((p) => 'f:' + p);
   const columns = [...new Set(kept.map((p) => col.get(p)))].sort((a, b) => a - b).map((c) => ({ part: c - min, label: labels.get(c) || step(c) }));
-  return { container, visible, connectors: [], edges, hidden: col.size - kept.length, partition, columns };
+  // with "uses" on the left, a line runs from the used file (left) to the file that uses it, so ELK lays it out
+  // left to right; the edge itself still reads "a uses b" in tooltips and the panel
+  return { container, visible, connectors: [], edges, hidden: col.size - kept.length, partition, columns, reverseEdges: DEP.usesLeft };
 }
 function depFoot(item) {
   const p = item.slice(2), { out, inn, loopOf } = depLinks();
   const part = nodes.get(files.get(p)?.n)?.label || 'Other';
-  const loop = loopOf.has(p) ? '<span class="dpl">Import loop</span>' : `<span class="dpn">used by ${inn.get(p)?.size || 0} · uses ${out.get(p)?.size || 0}</span>`;
+  const counts = DEP.usesLeft ? `uses ${out.get(p)?.size || 0} · used by ${inn.get(p)?.size || 0}` : `used by ${inn.get(p)?.size || 0} · uses ${out.get(p)?.size || 0}`;
+  const loop = loopOf.has(p) ? '<span class="dpl">Import loop</span>' : `<span class="dpn">${counts}</span>`;
   return `<div class="foot"><span class="meta">${h(part)}</span>${loop}</div>`;
 }
 function depCard(item) {
@@ -1086,13 +1320,23 @@ function depContext() {
   const c = state.container, f = depFocus(c), i = info(c);
   const loop = f.startsWith('loop:');
   const { out, inn } = depLinks();
-  const sub = loop ? 'Each file imports the next, and the last one imports the first again, so none of them can be changed, tested or reused on its own.'
-    : f.startsWith('f:') ? `Used by ${plural(inn.get(f.slice(2))?.size || 0, 'file')} and uses ${plural(out.get(f.slice(2))?.size || 0, 'file')} directly. What uses it is on the left, what it uses on the right.`
-    : `The files in ${i.name} that connect to the rest of the app: what uses them on the left, what they use on the right.`;
+  const L = DEP.usesLeft;
+  const sides = L ? 'what it uses is on the left, what uses it on the right' : 'what uses it is on the left, what it uses on the right';
+  const sub = loop ? `Each file imports the next${L ? ', on its left' : ''}, and the last one imports the first again, so none of them can be changed, tested or reused on its own.`
+    : f.startsWith('f:') ? `Uses ${plural(out.get(f.slice(2))?.size || 0, 'file')} and is used by ${plural(inn.get(f.slice(2))?.size || 0, 'file')} directly: ${sides}.`
+    : `The files in ${i.name} that connect to the rest of the app: ${L ? 'what they use on the left, what uses them on the right' : 'what uses them on the left, what they use on the right'}.`;
   const hidden = state.view?.hidden ? `<p class="cx" style="color:var(--text-3);font-size:12.5px;margin-top:8px">${plural(state.view.hidden, 'more file')} not shown. Fewer steps, or one side, shows the rest.</p>` : '';
   const seg = (name, vals, cur, label) => `<div class="seg" data-dpc="${name}">${label ? `<span>${label}</span>` : ''}${vals.map(([v, t]) => `<button data-v="${v}" class="${String(cur) === String(v) ? 'on' : ''}">${t}</button>`).join('')}</div>`;
-  const ctl = loop ? '' : `<div class="dpc">${seg('dir', [['both', 'Both'], ['in', 'Used by'], ['out', 'Uses']], DEP.dir)}${seg('depth', [[1, '1'], [2, '2'], [3, '3'], [4, '4']], DEP.depth, 'Steps')}</div>`;
+  const dirs = L ? [['both', 'Both'], ['out', 'Uses'], ['in', 'Used by']] : [['both', 'Both'], ['in', 'Used by'], ['out', 'Uses']];
+  const swap = `<div class="seg"><button data-dpswap title="${L ? 'Put what uses it on the left' : 'Put what it uses on the left'}">${iconI('swap')}Swap sides</button></div>`;
+  const ctl = `<div class="dpc">${loop ? '' : seg('dir', dirs, DEP.dir) + seg('depth', [[1, '1'], [2, '2'], [3, '3'], [4, '4']], DEP.depth, 'Steps')}${swap}</div>`;
   $('#context').innerHTML = `<div class="k"><span class="ico" style="--c:var(--n-deps)">${icon('deps')}</span>${loop ? 'Import loop' : 'Dependencies'}</div><h1>${h(i.name)}</h1><p class="cd" id="ctx-desc">${h(sub)}</p>${hidden}${ctl}`;
+  $('#context').querySelector('[data-dpswap]')?.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    DEP.usesLeft = !DEP.usesLeft;
+    store.set('dep-side', DEP.usesLeft ? 'uses-left' : 'usedby-left');
+    render({});
+  });
   $('#context').querySelectorAll('[data-dpc] button').forEach((b) => b.addEventListener('click', (ev) => {
     ev.stopPropagation();
     if (b.parentElement.dataset.dpc === 'dir') { DEP.dir = b.dataset.v; store.set('dep-dir', DEP.dir); }
@@ -1281,7 +1525,7 @@ async function layout(view) {
   }
   return elk.layout({
     id: 'g', children,
-    edges: view.edges.map((e) => ({ id: e.id, sources: [e.a], targets: [e.b] })),
+    edges: view.edges.map((e) => (view.reverseEdges ? { id: e.id, sources: [e.b], targets: [e.a] } : { id: e.id, sources: [e.a], targets: [e.b] })),
     layoutOptions: {
       'elk.algorithm': 'layered', 'elk.direction': 'RIGHT', 'elk.edgeRouting': 'ORTHOGONAL',
       'elk.layered.spacing.nodeNodeBetweenLayers': '130', 'elk.spacing.nodeNode': '32',
@@ -1314,6 +1558,8 @@ function roundedPath(pts, r = 10) {
 let renderToken = 0;
 async function render(opts = {}) {
   const token = ++renderToken;
+  if (state.container === 'list:files') { renderListView(opts); return; }
+  $('#listview').hidden = true;
   const view = buildView(state.container);
   const loading = setTimeout(() => $('#loading').classList.add('on'), 160);
   let res;
@@ -1629,7 +1875,7 @@ function setHash(container, sel) {
 function readHash() {
   const p = new URLSearchParams(location.hash.slice(1));
   let v = p.get('v') || 'root', s = p.get('s');
-  if (v !== 'root' && !parentOf.has(v) && !depValid(v)) v = 'root';
+  if (v !== 'root' && !parentOf.has(v) && !depValid(v) && v !== 'list:files') v = 'root';
   if (s && !parentOf.has(s) && !s.startsWith('x:') && !s.startsWith('m:')) s = null;
   return { v, s };
 }
@@ -1657,6 +1903,8 @@ function open(item) {
   if (item.startsWith('x:')) { reveal(connEntity(item)); return; }
   // in the Dependencies view, double-click centres the view on a file
   if (isDep(state.container) && (item.startsWith('f:') || item.startsWith('m:'))) { openDeps(item.startsWith('m:') ? 'f:' + item.slice(2) : item); return; }
+  // in All files, a file opens in the Dependencies view, or on the map when nothing imports it
+  if (state.container === 'list:files' && item.startsWith('f:')) { if (depAble(item)) openDeps(item); else reveal(item); return; }
   if (item.startsWith('m:')) return;
   if (state.container === 'q:answer' && !drillable(item)) { reveal(item); return; }
   if (!drillable(item)) { select(item); return; }
@@ -1666,6 +1914,7 @@ function open(item) {
 function up() { if (state.container === 'root') return; closeSheet(); const from = state.container;
   // from the Dependencies view, back to where its file or part sits on the map
   if (isDep(from)) { const f = depFocus(from); if (f.startsWith('loop:')) go('root'); else reveal(f); return; }
+  if (from === 'list:files') { go('root'); return; }
   go(parentOf.get(from) || 'root', { select: from });
 }
 function reveal(item) {
@@ -1700,6 +1949,7 @@ function select(sel) {
 }
 function applySelection() {
   const sel = state.selected;
+  if (state.container === 'list:files') $('#listview').querySelectorAll('tr[data-f]').forEach((r) => r.classList.toggle('sel', 'f:' + r.dataset.f === sel));
   svg.classList.remove('dim');
   for (const g of state.chipEls?.values() || []) g.classList.remove('sel', 'hl');
   for (const { g, pg } of state.edgeEls?.values() || []) { g.classList.remove('hl'); pg.classList.remove('hl'); }
@@ -1719,6 +1969,10 @@ function applySelection() {
 // ======================= chrome: context, crumbs, legend =======================
 function renderContext() {
   if (isDep(state.container)) { depContext(); return; }
+  if (state.container === 'list:files') {
+    $('#context').innerHTML = `<div class="k"><span class="ico" style="--c:var(--n-list)">${icon('list')}</span>Files</div><h1>All files</h1><p class="cd" id="ctx-desc">Every file that makes up the project. Search, filter and sort, then pick one to see its details, open its dependencies or find it on the map.</p>`;
+    return;
+  }
   if (state.container === 'q:answer') {
     $('#context').innerHTML = `<div class="k"><span class="ico" style="--c:var(--on)">${icon(state.answer.icon || 'spark')}</span>${h(state.answer.kind || 'Answer')} · ${plural(state.answer.items.length, 'card')}</div><h1>${h(state.answer.title)}</h1><p>${h(state.answer.question)}</p>`;
     return;
@@ -1832,10 +2086,10 @@ function renderPanel() {
   else if (sel && sel.startsWith('x:')) html = itemPanel(connEntity(sel), true);
   else if (sel && sel.startsWith('m:')) html = itemPanel('f:' + sel.slice(2));
   else if (sel) html = itemPanel(sel);
-  else html = state.container === 'root' ? overviewPanel() : state.container === 'q:answer' ? answerPanel() : isDep(state.container) ? depsPanel() : itemPanel(state.container);
+  else html = state.container === 'root' ? overviewPanel() : state.container === 'q:answer' ? answerPanel() : isDep(state.container) ? depsPanel() : state.container === 'list:files' ? listPanel() : itemPanel(state.container);
   // extensions add sections: 'overview' on the codebase panel, 'item' on a selected/opened item
   const loopView = isDep(state.container) && depFocus(state.container).startsWith('loop:');
-  const where = sel && typeof sel === 'object' ? null : sel ? 'item' : state.container === 'root' ? 'overview' : state.container === 'q:answer' || loopView ? null : 'item';
+  const where = sel && typeof sel === 'object' ? null : sel ? 'item' : state.container === 'root' ? 'overview' : state.container === 'q:answer' || loopView || state.container === 'list:files' ? null : 'item';
   const target = sel && typeof sel === 'string' ? (sel.startsWith('x:') ? connEntity(sel) : sel.startsWith('m:') ? 'f:' + sel.slice(2) : sel) : isDep(state.container) ? depFocus(state.container) : state.container;
   const extOut = [];
   if (custom.panel) { html = custom.panel.html; extOut.push(...(custom.panel.bind ? [{ bind: custom.panel.bind, whole: true }] : [])); }
@@ -1858,7 +2112,8 @@ function renderPanel() {
     ev.preventDefault();
     const id = a.dataset.go;
     // in the Dependencies view, a file on the board is picked there, and another opens there
-    if (isDep(state.container) && state.view?.visible.includes(id)) { select(id); centerOn(id); }
+    if (state.container === 'list:files' && id.startsWith('f:')) { select(id); listScrollTo(id); }
+    else if (isDep(state.container) && state.view?.visible.includes(id)) { select(id); centerOn(id); }
     else if (isDep(state.container) && depAble(id)) openDeps(id);
     else reveal(id);
   }));
@@ -2684,7 +2939,7 @@ window.Floorplan = Object.freeze({
   // navigation
   go, reveal, select, open, up, fit, render: (o) => render({ keepTransform: true, ...o }), refreshPanel: () => renderPanel(),
   showBoard, playFlow, startFlow, stopFlow: () => { if (state.flow) stopFlow(); },
-  deps: { open: openDeps, able: depAble, loops: () => depLinks().loops, links: depLinks, isView: isDep },
+  deps: { open: openDeps, able: depAble, loops: () => depLinks().loops, links: depLinks, isView: isDep, allFiles: () => go('list:files'), usesLeft: () => DEP.usesLeft },
   freeArea: () => freeArea(),
   closeMenus: () => { closeMenu(); fm.classList.remove('open'); legendEl.classList.remove('open'); },
   // asking
