@@ -2189,7 +2189,7 @@ export function buildHealth({ graph, scan, arch, root }) {
   // at start-up. Found as strongly connected groups of the file → file links (imports, plus the components and
   // composables a file uses without importing), ignoring tests.
   {
-    const loops = importLoops(graph.links, (p) => !TEST_FILE.test(p) && !/\.d\.[cm]?ts$/.test(p));
+    const loops = importLoops(graph.links, loopKeep(graph));
     if (loops.length) {
       const inLoop = new Map(); // file → the loop it's in
       loops.forEach((lp, i) => lp.files.forEach((f) => inLoop.set(f, i)));
@@ -2372,6 +2372,17 @@ function readHead(file, max) {
 function stemOf(p) {
   const base = p.split('/').pop().replace(/\.[^.]+$/, '');
   return base === 'index' ? p.split('/').slice(-2, -1)[0] : base;
+}
+
+// Files the loop check leaves out: tests (by path, or in a part of kind "test") and type declarations.
+// graph-query.js's fileLinks() (the Dependencies view, query.mjs loops) uses the same rule, so Health and the map
+// list the same loops; tests/dependencies.test.mjs checks that they agree.
+const LOOP_SKIP = /(^|\/)(tests?|__tests__|__mocks__|specs?|e2e|cypress|fixtures?|testdata|mocks?)\/|\.(test|spec|stories|e2e)\.[a-z]+$|(^|\/)test_[^/]*\.py$|_test\.(py|go)$|(^|\/)conftest\.py$|\.d\.[cm]?ts$/i;
+/** Which files of the graph count for importLoops(). */
+export function loopKeep(graph) {
+  const kindOf = new Map((graph.nodes || []).map((n) => [n.id, n.kind]));
+  const partOf = new Map((graph.files || []).map((f) => [f.p, f.n]));
+  return (p) => partOf.has(p) && !LOOP_SKIP.test(p) && kindOf.get(partOf.get(p)) !== 'test';
 }
 
 /**

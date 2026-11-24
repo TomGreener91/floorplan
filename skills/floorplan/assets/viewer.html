@@ -1194,7 +1194,7 @@ document.addEventListener('click', (ev) => {
 // other in red. Views: dep:f:<path> (a file), dep:n:<part> (the files in a part that connect outside it) and
 // dep:loop:<i> (one import loop, in order). The file → file links come from graph-query.js's fileLinks().
 const DEP = {
-  data: null, linkObj: null, partFiles: new Map(),
+  data: null, linkObj: null, partFiles: new Map(), partAble: new Map(),
   depth: clamp(+store.get('dep-depth', 2) || 2, 1, 4),
   dir: ['both', 'in', 'out'].includes(store.get('dep-dir', 'both')) ? store.get('dep-dir', 'both') : 'both',
   // which side what a file uses goes on: the left by default (what it's built from → the file → what's built
@@ -1210,6 +1210,12 @@ function depFilesOf(nid) {
   if (!DEP.partFiles.has(nid)) DEP.partFiles.set(nid, G.files.filter((f) => chain('f:' + f.p).includes('n:' + nid)).map((f) => f.p));
   return DEP.partFiles.get(nid);
 }
+/** Whether file p links to a file outside the set inside (onBoard: only to one placed in col). */
+function depReachesOut(p, inside, col) {
+  const { out, inn } = depLinks();
+  for (const adj of [out, inn]) for (const q of adj.get(p) || []) if (!inside.has(q) && (!col || col.has(q))) return true;
+  return false;
+}
 function depValid(c) {
   if (!isDep(c)) return false;
   const f = depFocus(c);
@@ -1222,7 +1228,13 @@ function depAble(id) {
   if (id.startsWith('m:')) id = 'f:' + id.slice(2);
   const { out, inn } = depLinks();
   if (id.startsWith('f:')) { const p = id.slice(2); return files.has(p) && (out.has(p) || inn.has(p)); }
-  if (id.startsWith('n:')) { const n = nodes.get(id.slice(2)); return !!n && n.kind !== 'external' && depFilesOf(n.id).some((p) => out.has(p) || inn.has(p)); }
+  // a part needs a file that connects outside it: links among its own files alone would leave the view empty
+  if (id.startsWith('n:')) {
+    const n = nodes.get(id.slice(2));
+    if (!n || n.kind === 'external') return false;
+    if (!DEP.partAble.has(n.id)) { const inside = new Set(depFilesOf(n.id)); DEP.partAble.set(n.id, [...inside].some((p) => depReachesOut(p, inside))); }
+    return DEP.partAble.get(n.id);
+  }
   return false;
 }
 function openDeps(id) {
@@ -1280,7 +1292,13 @@ function buildDepsView(container) {
     if (DEP.dir !== 'in') walk(out, sUse);
     if (DEP.dir !== 'out') walk(inn, -sUse);
     // a part shows only its files that connect outside it
-    if (focus.startsWith('n:')) for (const p of center) if (![...(out.get(p) || []), ...(inn.get(p) || [])].some((q) => col.has(q) && !inside.has(q))) col.delete(p);
+    // (with one side picked and nothing on it, its files that connect outside the other way, as a file shows itself)
+    if (focus.startsWith('n:')) {
+      let shown = center.filter((p) => depReachesOut(p, inside, col));
+      if (!shown.length) shown = center.filter((p) => depReachesOut(p, inside));
+      const keepIn = new Set(shown);
+      for (const p of center) if (!keepIn.has(p)) col.delete(p);
+    }
   }
   // the nearest steps first; within a column, grouped by part, then by name
   const partOf = (p) => files.get(p)?.n || '';

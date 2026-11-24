@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
-import { makeProject, run, readGraph, readJson, cleanup } from './helpers.mjs';
+import { REPO, makeProject, run, readGraph, readJson, cleanup } from './helpers.mjs';
 
 const ARCH = {
   project: { name: 'Waypoint', summary: 'A Vue app.' },
@@ -155,6 +155,57 @@ test('the loop finder: groups, the shortest loop through each, and tests left ou
   const chain = Array.from({ length: 20000 }, (_, i) => L('m' + i, 'm' + (i + 1)));
   chain.push(L('m20000', 'm0'));
   assert.equal(importLoops(chain)[0].files.length, 20001);
+});
+
+// graph-query.js is a plain script (no exports): this hands back its createGraphQuery
+const loadGraphQuery = () => new Function(`${fs.readFileSync(path.join(REPO, 'skills', 'floorplan', 'assets', 'graph-query.js'), 'utf8')}\nreturn createGraphQuery;`)();
+
+test('Health and the Dependencies view leave the same files out of loops, so they list the same loops', async () => {
+  const { importLoops, loopKeep } = await import('../skills/floorplan/scripts/lib/health.mjs');
+  const pairs = [
+    ['src/a.ts', 'src/b.ts'], // the one real loop
+    ['src/mocks/m1.ts', 'src/mocks/m2.ts'], ['tests/fixtures/f1.ts', 'tests/fixtures/f2.ts'], ['cypress/support/c1.ts', 'cypress/support/c2.ts'],
+    ['pkg/x.go', 'pkg/x_test.go'], ['app/test_views.py', 'app/views.py'], ['app/conftest.py', 'app/models.py'],
+    ['src/c.e2e.ts', 'src/d.ts'], ['src/types.d.ts', 'src/e.ts'], ['qa/h1.ts', 'qa/h2.ts'], // qa is a part of kind "test"
+  ];
+  const paths = [...new Set(pairs.flat())];
+  const G = {
+    nodes: [{ id: 'app', kind: 'ui', label: 'App' }, { id: 'qa', kind: 'test', label: 'Checks' }],
+    files: paths.map((p) => ({ p, n: p.startsWith('qa/') ? 'qa' : 'app', name: p.split('/').pop() })),
+    links: pairs.flatMap(([a, b]) => [{ a: 'f:' + a, b: 'f:' + b, k: 'import' }, { a: 'f:' + b, b: 'f:' + a, k: 'import' }]),
+  };
+  const health = importLoops(G.links, loopKeep(G)).map((l) => l.files);
+  const map = loadGraphQuery()(G).fileLinks().loops.map((l) => l.files);
+  assert.deepEqual(health, [['src/a.ts', 'src/b.ts']]);
+  assert.deepEqual(map, health);
+});
+
+test("the Dependencies view: a part is offered only when it connects outside, and one picked side never leaves it empty", () => {
+  const html = fs.readFileSync(path.join(REPO, 'skills', 'floorplan', 'assets', 'viewer.html'), 'utf8');
+  const code = html.slice(html.indexOf('// ======================= dependencies'), html.indexOf('function buildView(container)'));
+  const G = {
+    nodes: [{ id: 'iso', kind: 'feature', label: 'Island' }, { id: 'lib', kind: 'feature', label: 'Library' }, { id: 'ui', kind: 'ui', label: 'Pages' }],
+    files: [['iso/i1.ts', 'iso'], ['iso/i2.ts', 'iso'], ['lib/l1.ts', 'lib'], ['lib/l2.ts', 'lib'], ['ui/u1.ts', 'ui']].map(([p, n]) => ({ p, n, name: p.split('/').pop() })),
+    links: [['iso/i1.ts', 'iso/i2.ts'], ['iso/i2.ts', 'iso/i1.ts'], ['lib/l2.ts', 'lib/l1.ts'], ['ui/u1.ts', 'lib/l1.ts']].map(([a, b]) => ({ a: 'f:' + a, b: 'f:' + b, k: 'import' })),
+  };
+  const files = new Map(G.files.map((f) => [f.p, f]));
+  const nodes = new Map(G.nodes.map((n) => [n.id, n]));
+  const env = {
+    G, files, nodes, createGraphQuery: loadGraphQuery(),
+    store: { get: (k, d) => d, set: () => {} }, clamp: (v, a, b) => Math.min(b, Math.max(a, v)),
+    chain: (id) => (id.startsWith('f:') ? [id, 'n:' + files.get(id.slice(2)).n] : [id]),
+    info: (id) => ({ name: id.startsWith('n:') ? nodes.get(id.slice(2)).label : files.get(id.slice(2)).name, desc: '' }),
+    plural: (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`,
+  };
+  const dep = new Function(...Object.keys(env), `${code}\nreturn { DEP, depAble, buildDepsView };`)(...Object.values(env));
+  // Island's files only import each other: nothing to show, so it isn't offered
+  assert.equal(dep.depAble('n:iso'), false);
+  assert.equal(dep.depAble('n:lib'), true);
+  dep.DEP.dir = 'both';
+  assert.deepEqual(dep.buildDepsView('dep:n:lib').visible.sort(), ['f:lib/l1.ts', 'f:ui/u1.ts']);
+  // Library uses nothing outside it: with only "Uses" picked, its files used from outside still show
+  dep.DEP.dir = 'out';
+  assert.deepEqual(dep.buildDepsView('dep:n:lib').visible, ['f:lib/l1.ts']);
 });
 
 test('query.mjs deps and loops: what a file uses and what uses it, by path or just its name', () => {

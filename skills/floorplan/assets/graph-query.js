@@ -183,7 +183,8 @@ function createGraphQuery(G) {
   // Which files each file uses (imports, plus components and composables used without an import line) and is
   // used by, and the loops of files that import each other: strongly connected groups, found with Tarjan's
   // algorithm without recursion. Test files are left out of loops, as in Health.
-  const TEST = /(^|\/)(__tests__|__mocks__|tests?|spec|e2e|cypress)\/|\.(test|spec|stories|e2e)\.[a-z]+$/i;
+  // the same rule as loopKeep() in scripts/lib/health.mjs, so Health and the map list the same loops
+  const TEST = /(^|\/)(tests?|__tests__|__mocks__|specs?|e2e|cypress|fixtures?|testdata|mocks?)\/|\.(test|spec|stories|e2e)\.[a-z]+$|(^|\/)test_[^/]*\.py$|_test\.(py|go)$|(^|\/)conftest\.py$/i;
   const DECL = /\.d\.[cm]?ts$/;
   let fileGraph = null;
   function fileLinks() {
